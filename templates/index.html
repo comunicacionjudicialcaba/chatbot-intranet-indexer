@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Buscador Intranet</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input { width: 100%; padding: 10px; font-size: 16px; }
+    .result { margin-top: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+    .title { font-weight: bold; font-size: 18px; }
+    .meta { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <h1>Buscador de la Intranet</h1>
+
+  <input type="text" id="search" placeholder="Buscar por título, categoría o autor…">
+
+  <div id="results"></div>
+
+  <script>
+    let data = [];
+
+    fetch("/data")
+      .then(r => r.json())
+      .then(json => data = json);
+
+    document.getElementById("search").addEventListener("input", function () {
+      const q = this.value.toLowerCase();
+      const results = data.filter(item =>
+        item.titulo?.toLowerCase().includes(q) ||
+        item.seccion?.toLowerCase().includes(q) ||
+        item.autor?.toLowerCase().includes(q)
+      );
+
+      const container = document.getElementById("results");
+      container.innerHTML = "";
+
+      results.slice(0, 20).forEach(item => {
+        const div = document.createElement("div");
+        div.className = "result";
+        div.innerHTML = `
+          <div class="title">${item.titulo}</div>
+          <div class="meta">${item.fecha} · ${item.seccion || ""}</div>
+          <a href="${item.url}" target="_blank">Ver nota</a>
+        `;
+        container.appendChild(div);
+      });
+    });
+  </script>
+
+</body>
+</html>
