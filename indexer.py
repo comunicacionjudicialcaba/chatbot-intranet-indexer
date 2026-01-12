@@ -158,6 +158,8 @@ def main():
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print(f"\n✔ Indexación completa: {len(data)} registros generados")
+    push_to_github()
+
     print("✔ data.json generado y disponible en el servidor")
 
 # ===============================
