@@ -161,6 +161,57 @@ def main():
     print("✔ data.json generado y disponible en el servidor")
 
 # ===============================
+# PUSH TO GITHUB
+# ===============================
+
+import subprocess
+
+def push_to_github():
+    token = os.environ.get("GITHUB_TOKEN")
+
+    if not token:
+        raise Exception("❌ GITHUB_TOKEN no está definido en el Background Worker")
+
+    print("🔐 GITHUB_TOKEN detectado")
+
+    subprocess.run(["git", "config", "--global", "user.email", "bot@render.com"], check=True)
+    subprocess.run(["git", "config", "--global", "user.name", "Render Bot"], check=True)
+
+    subprocess.run(["git", "checkout", "-B", "main"], check=True)
+    subprocess.run(["git", "add", "data.json"], check=True)
+
+    commit = subprocess.run(
+        ["git", "commit", "-m", "Update data.json"],
+        capture_output=True,
+        text=True
+    )
+
+    print("📝 git commit output:")
+    print(commit.stdout)
+    print(commit.stderr)
+
+    push = subprocess.run(
+        [
+            "git",
+            "push",
+            "--force",
+            f"https://{token}@github.com/comunicacionjudicialcaba/chatbot-intranet-indexer.git",
+            "main"
+        ],
+        capture_output=True,
+        text=True
+    )
+
+    print("🚀 git push output:")
+    print(push.stdout)
+    print(push.stderr)
+
+    if push.returncode != 0:
+        raise Exception("❌ Falló el git push")
+
+    print("✔ data.json subido a GitHub correctamente")
+
+# ===============================
 # EJECUCIÓN
 # ===============================
 
