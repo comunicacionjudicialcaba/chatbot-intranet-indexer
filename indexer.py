@@ -103,6 +103,7 @@ def parse_sheet(file_id):
 
     return result
 
+
 # ===============================
 # PARSER DE GOOGLE DOCS
 # ===============================
