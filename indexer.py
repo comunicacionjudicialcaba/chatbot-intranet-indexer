@@ -139,26 +139,6 @@ with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent=2)
 
 print(f"\n✔ Indexación completa: {len(data)} registros generados")
-import subprocess
 
-def git_commit_and_push():
-    try:
-        subprocess.run(["git", "config", "--global", "user.email", "bot@render.com"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "Render Bot"], check=True)
+print("✔ Indexación completa: data.json generado y disponible en el servidor")
 
-        subprocess.run(["git", "add", "data.json"], check=True)
-        subprocess.run(["git", "commit", "-m", "Update data.json"], check=True)
-
-        subprocess.run([
-            "git",
-            "push",
-            f"https://{os.environ['GITHUB_TOKEN']}@github.com/comunicacionjudicialcaba/chatbot-intranet-indexer.git",
-            "HEAD:main"
-        ], check=True)
-
-        print("✔ data.json subido a GitHub")
-
-    except subprocess.CalledProcessError as e:
-        print("⚠ No se pudo subir data.json:", e)
-
-git_commit_and_push()
