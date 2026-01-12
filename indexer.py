@@ -86,35 +86,59 @@ def parse_doc(file_id):
 
     return items
 
+def normalize(text):
+    if not text:
+        return ""
+    return text.strip().lower().replace(" ", "").replace("_", "")
+
+
 def parse_sheet(file_id):
-    sheet = sheets.spreadsheets().get(spreadsheetId=file_id).execute()
-    sheet_name = sheet["sheets"][0]["properties"]["title"]
+    result = []
 
-    values = sheets.spreadsheets().values().get(
+    sheet = sheets_service.spreadsheets().values().get(
         spreadsheetId=file_id,
-        range=sheet_name
-    ).execute().get("values", [])
+        range="A:Z"
+    ).execute()
 
-    headers = [normalize(h) for h in values[0]]
-    rows = values[1:]
+    rows = sheet.get("values", [])
+    if not rows:
+        return result
 
-    items = []
-    for row in rows:
-        data = dict(zip(headers, row))
-        url = data.get("url")
-        uid = url or f"{data.get('fecha')}-{normalize(data.get('titulo',''))}"
+    headers = rows[0]
+    header_map = {}
 
-        items.append({
-            "id": uid,
-            "fecha": data.get("fecha"),
-            "titulo": data.get("titulo"),
-            "autor": data.get("autor"),
-            "seccion": data.get("seccion"),
+    for idx, h in enumerate(headers):
+        header_map[normalize(h)] = idx
+
+    def get(col_name, row):
+        key = normalize(col_name)
+        idx = header_map.get(key)
+        if idx is not None and idx < len(row):
+            return row[idx]
+        return None
+
+    for row in rows[1:]:
+        fecha = get("fecha", row)
+        titulo = get("titulo", row)
+        seccion = get("seccion", row)
+        autor = get("autor", row)
+        url = get("url", row)
+
+        if not (fecha or titulo):
+            continue
+
+        result.append({
+            "tipo": "sheet",
+            "fecha": fecha,
+            "titulo": titulo,
+            "seccion": seccion,
+            "autor": autor,
             "url": url,
-            "tipo": "sheet"
+            "id": f"{fecha}-{titulo}" if titulo else fecha
         })
 
-    return items
+    return result
+
 
 # =========================
 # MAIN
