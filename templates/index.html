@@ -2,53 +2,266 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Buscador Intranet</title>
+  <title>Buscador y Chatbot Intranet</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    input { width: 100%; padding: 10px; font-size: 16px; }
-    .result { margin-top: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
-    .title { font-weight: bold; font-size: 18px; }
-    .meta { color: #666; font-size: 14px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      cursor: pointer;
+    }
+    .controls {
+      max-width: 800px;
+      margin-bottom: 20px;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .row > div {
+      flex: 1;
+      min-width: 180px;
+    }
+    .result {
+      margin-top: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    .title {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .meta {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    .chat {
+      margin-top: 50px;
+      max-width: 800px;
+      border-top: 2px solid #000;
+      padding-top: 20px;
+    }
+    .message {
+      margin-bottom: 15px;
+    }
+    .user {
+      font-weight: bold;
+    }
+    .bot {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .links a {
+      display: block;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Buscador de la Intranet</h1>
+<h1>Buscador de la Intranet</h1>
 
-  <input type="text" id="search" placeholder="Buscar por título, categoría o autor…">
+<div class="controls">
 
-  <div id="results"></div>
+  <input
+    type="text"
+    id="search"
+    placeholder="Buscar por título, categoría o autor…"
+  >
 
-  <script>
-    let data = [];
+  <div class="row">
+    <div>
+      <label><strong>Año</strong></label>
+      <select id="year">
+        <option value="">Todos</option>
+      </select>
+    </div>
 
-    fetch("/data")
-      .then(r => r.json())
-      .then(json => data = json);
+    <div>
+      <label><strong>Categoría</strong></label>
+      <select id="category">
+        <option value="">Todas</option>
+      </select>
+    </div>
 
-    document.getElementById("search").addEventListener("input", function () {
-      const q = this.value.toLowerCase();
-      const results = data.filter(item =>
-        item.titulo?.toLowerCase().includes(q) ||
-        item.seccion?.toLowerCase().includes(q) ||
-        item.autor?.toLowerCase().includes(q)
-      );
+    <div>
+      <label><strong>Ordenar por</strong></label>
+      <select id="order">
+        <option value="relevancia">Relevancia</option>
+        <option value="fecha">Más recientes</option>
+      </select>
+    </div>
+  </div>
 
-      const container = document.getElementById("results");
-      container.innerHTML = "";
+  <p id="info" style="color:#666; font-size:14px;">
+    Se muestran hasta 50 resultados que coinciden con la búsqueda.
+  </p>
 
-      results.slice(0, 20).forEach(item => {
-        const div = document.createElement("div");
-        div.className = "result";
-        div.innerHTML = `
-          <div class="title">${item.titulo}</div>
-          <div class="meta">${item.fecha} · ${item.seccion || ""}</div>
-          <a href="${item.url}" target="_blank">Ver nota</a>
-        `;
-        container.appendChild(div);
-      });
+</div>
+
+<div id="results"></div>
+
+<!-- ================= CHATBOT ================= -->
+
+<div class="chat">
+  <h2>Chatbot de la Intranet</h2>
+
+  <textarea
+    id="question"
+    rows="3"
+    placeholder="Escribí tu pregunta… (ej: ¿Hubo cortes en EJE en enero?)"
+  ></textarea>
+
+  <button onclick="ask()">Preguntar</button>
+
+  <div id="chat"></div>
+</div>
+
+<script>
+  let data = [];
+
+  function parseDate(d) {
+    if (!d) return null;
+    const p = d.split("/");
+    return new Date(p[2], p[1] - 1, p[0]);
+  }
+
+  function getYear(item) {
+    if (!item.fecha) return "";
+    return item.fecha.split("/")[2];
+  }
+
+  function renderResults() {
+    const q = document.getElementById("search").value.toLowerCase();
+    const year = document.getElementById("year").value;
+    const category = document.getElementById("category").value;
+    const order = document.getElementById("order").value;
+
+    let results = data.filter(item => {
+      if (
+        q &&
+        !(
+          item.titulo?.toLowerCase().includes(q) ||
+          item.seccion?.toLowerCase().includes(q) ||
+          item.autor?.toLowerCase().includes(q)
+        )
+      ) return false;
+
+      if (year && getYear(item) !== year) return false;
+      if (category && item.seccion !== category) return false;
+
+      return true;
     });
-  </script>
+
+    if (order === "fecha") {
+      results.sort((a, b) => parseDate(b.fecha) - parseDate(a.fecha));
+      document.getElementById("info").innerText =
+        "Se muestran los 50 resultados más recientes que coinciden con la búsqueda.";
+    } else {
+      document.getElementById("info").innerText =
+        "Se muestran hasta 50 resultados que coinciden con la búsqueda.";
+    }
+
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    results.slice(0, 50).forEach(item => {
+      const div = document.createElement("div");
+      div.className = "result";
+      div.innerHTML = `
+        <div class="title">${item.titulo}</div>
+        <div class="meta">
+          ${item.fecha || ""} · ${item.seccion || ""}
+          ${item.autor ? " · Por: " + item.autor : ""}
+        </div>
+        <a href="${item.url}" target="_blank">Ver nota</a>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function populateFilters() {
+    const years = new Set();
+    const categories = new Set();
+
+    data.forEach(item => {
+      const y = getYear(item);
+      if (y) years.add(y);
+      if (item.seccion) categories.add(item.seccion);
+    });
+
+    const yearSelect = document.getElementById("year");
+    [...years].sort((a, b) => b - a).forEach(y => {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      yearSelect.appendChild(opt);
+    });
+
+    const catSelect = document.getElementById("category");
+    [...categories].sort().forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      catSelect.appendChild(opt);
+    });
+  }
+
+  document.getElementById("search").addEventListener("input", renderResults);
+  document.getElementById("year").addEventListener("change", renderResults);
+  document.getElementById("category").addEventListener("change", renderResults);
+  document.getElementById("order").addEventListener("change", renderResults);
+
+  fetch("/data")
+    .then(r => r.json())
+    .then(json => {
+      data = json;
+      populateFilters();
+      renderResults();
+    });
+
+  // ================= CHAT =================
+
+  function ask() {
+    const q = document.getElementById("question").value;
+    if (!q) return;
+
+    const chat = document.getElementById("chat");
+
+    chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
+
+    fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q })
+    })
+    .then(r => r.json())
+    .then(res => {
+      let html = `<div class="message bot">${res.answer}</div>`;
+
+      if (res.links && res.links.length) {
+        html += `<div class="links"><strong>Links:</strong>`;
+        res.links.forEach(l => {
+          html += `<a href="${l}" target="_blank">${l}</a>`;
+        });
+        html += `</div>`;
+      }
+
+      chat.innerHTML += html;
+      document.getElementById("question").value = "";
+    });
+  }
+</script>
 
 </body>
 </html>
