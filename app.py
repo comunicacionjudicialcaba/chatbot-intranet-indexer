@@ -85,7 +85,8 @@ def chat():
     if not OPENAI_API_KEY:
         return jsonify({"answer": "ERROR: No hay API key configurada."}), 500
 
-    user_msg = request.json.get("message", "").strip()
+   user_msg = request.json.get("text", "").strip()
+
 
     if not user_msg:
         return jsonify({"answer": "Escribí una pregunta."})
