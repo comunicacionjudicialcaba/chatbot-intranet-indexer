@@ -42,7 +42,6 @@ def build_context(query, max_items=8):
         if q in text:
             matches.append(item)
 
-    # priorizar más recientes si hay fecha
     def date_key(x):
         return x.get("fecha", "")
 
@@ -85,8 +84,8 @@ def chat():
     if not OPENAI_API_KEY:
         return jsonify({"answer": "ERROR: No hay API key configurada."}), 500
 
-   user_msg = request.json.get("text", "").strip()
-
+    payload_json = request.get_json(silent=True) or {}
+    user_msg = payload_json.get("text", "").strip()
 
     if not user_msg:
         return jsonify({"answer": "Escribí una pregunta."})
