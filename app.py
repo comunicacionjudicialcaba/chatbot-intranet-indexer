@@ -28,7 +28,19 @@ DATA = load_data()
 # ------------------------
 
 def build_context(query, max_items=8):
-    words = [w for w in query.lower().split() if len(w) > 3]
+
+    def normalize(w):
+        return (
+            w.replace("ciones", "")
+             .replace("ción", "")
+             .replace("ar", "")
+             .replace("er", "")
+             .replace("ir", "")
+             .replace("o", "")
+             .replace("a", "")
+        )
+
+    words = [normalize(w) for w in query.lower().split() if len(w) > 3]
 
     scored = []
 
@@ -40,12 +52,13 @@ def build_context(query, max_items=8):
             str(item.get("fecha", "")),
         ]).lower()
 
+        text = normalize(text)   # 👈 ACÁ VA ESTA LÍNEA
+
         score = sum(1 for w in words if w in text)
 
         if score > 0:
             scored.append((score, item))
 
-    # ordenar por coincidencias y por fecha
     scored.sort(key=lambda x: (x[0], x[1].get("fecha", "")), reverse=True)
 
     matches = [item for _, item in scored[:max_items]]
@@ -62,37 +75,6 @@ def build_context(query, max_items=8):
 
     return "\n---\n".join(parts)
 
-    q = query.lower()
-
-    matches = []
-    for item in DATA:
-        text = " ".join([
-            str(item.get("titulo", "")),
-            str(item.get("seccion", "")),
-            str(item.get("autor", "")),
-            str(item.get("fecha", "")),
-        ]).lower()
-
-        if q in text:
-            matches.append(item)
-
-    def date_key(x):
-        return x.get("fecha", "")
-
-    matches = sorted(matches, key=date_key, reverse=True)
-    matches = matches[:max_items]
-
-    parts = []
-    for m in matches:
-        parts.append(
-            f"Título: {m.get('titulo')}\n"
-            f"Fecha: {m.get('fecha')}\n"
-            f"Autor: {m.get('autor')}\n"
-            f"Sección: {m.get('seccion')}\n"
-            f"URL: {m.get('url')}\n"
-        )
-
-    return "\n---\n".join(parts)
 
 
 # ------------------------
