@@ -30,12 +30,13 @@ DATA = load_data()
 # ------------------------
 
 def build_context(query, max_items=8):
-
+     
 def parse_date(fecha):
     try:
-        return datetime.strptime(fecha, "%d/%m/%Y")
-    except:
+        return datetime.strptime(fecha.strip(), "%d/%m/%Y")
+    except Exception:
         return datetime.min
+
 
 def normalize(w):
         return (
@@ -116,7 +117,9 @@ def chat():
 
     if not user_msg:
         return jsonify({"answer": "Escribí una pregunta."})
-
+    
+    if not context:
+    return jsonify({"answer": "No se encontraron notas relacionadas en el período consultado."})
     context = build_context(user_msg)
 
     prompt = (
