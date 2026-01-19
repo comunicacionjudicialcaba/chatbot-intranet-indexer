@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request, render_template
 import json
 import os
 import requests
+from datetime import datetime
+
 
 app = Flask(__name__)
 
@@ -29,7 +31,13 @@ DATA = load_data()
 
 def build_context(query, max_items=8):
 
-    def normalize(w):
+def parse_date(fecha):
+    try:
+        return datetime.strptime(fecha, "%d/%m/%Y")
+    except:
+        return datetime.min
+
+def normalize(w):
         return (
             w.replace("ciones", "")
              .replace("ción", "")
@@ -59,7 +67,10 @@ def build_context(query, max_items=8):
         if score > 0:
             scored.append((score, item))
 
-    scored.sort(key=lambda x: (x[0], x[1].get("fecha", "")), reverse=True)
+scored.sort(
+    key=lambda x: (x[0], parse_date(x[1].get("fecha", ""))),
+    reverse=True
+)
 
     matches = [item for _, item in scored[:max_items]]
 
