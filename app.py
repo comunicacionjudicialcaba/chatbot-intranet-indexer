@@ -4,7 +4,6 @@ import os
 import requests
 from datetime import datetime
 
-
 app = Flask(__name__)
 
 DATA_FILE = "data.json"
@@ -26,29 +25,30 @@ DATA = load_data()
 
 
 # ------------------------
+# Utilidades
+# ------------------------
+
+def parse_date(fecha):
+    try:
+        return datetime.strptime(fecha.strip(), "%d/%m/%Y")
+    except Exception:
+        return datetime.min
+
+
+def normalize_text(t):
+    t = t.lower()
+    for s in ["ciones", "ción", "ar", "er", "ir", "o", "a"]:
+        t = t.replace(s, "")
+    return t
+
+
+# ------------------------
 # Construir contexto
 # ------------------------
 
 def build_context(query, max_items=8):
 
-    def parse_date(fecha):
-        try:
-            return datetime.strptime(fecha.strip(), "%d/%m/%Y")
-        except Exception:
-            return datetime.min
-
-    def normalize(w):
-        return (
-            w.replace("ciones", "")
-             .replace("ción", "")
-             .replace("ar", "")
-             .replace("er", "")
-             .replace("ir", "")
-             .replace("o", "")
-             .replace("a", "")
-        )
-
-    words = [normalize(w) for w in query.lower().split() if len(w) > 3]
+    words = [normalize_text(w) for w in query.lower().split() if len(w) > 3]
 
     scored = []
 
@@ -58,11 +58,11 @@ def build_context(query, max_items=8):
             str(item.get("seccion", "")),
             str(item.get("autor", "")),
             str(item.get("fecha", "")),
-        ]).lower()
+        ])
 
-        text = normalize(text)
+        text_n = normalize_text(text)
 
-        score = sum(1 for w in words if w in text)
+        score = sum(1 for w in words if w in text_n)
 
         if score > 0:
             scored.append((score, item))
@@ -87,7 +87,6 @@ def build_context(query, max_items=8):
     return "\n---\n".join(parts)
 
 
-
 # ------------------------
 # Rutas web
 # ------------------------
@@ -108,36 +107,36 @@ def data():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    if not OPENAI_API_KEY:
-        return jsonify({"answer": "ERROR: No hay API key configurada."}), 500
-
-    payload_json = request.get_json(silent=True) or {}
-    user_msg = payload_json.get("text", "").strip()
-
-    if not user_msg:
-        return jsonify({"answer": "Escribí una pregunta."})
-    
-    if not context:
-    return jsonify({"answer": "No se encontraron notas relacionadas en el período consultado."})
-    context = build_context(user_msg)
-
-    prompt = (
-        "Usá únicamente la información siguiente para responder.\n"
-        "Si no hay datos suficientes, decilo claramente.\n\n"
-        f"{context}\n\n"
-        f"Pregunta: {user_msg}"
-    )
-
-    payload = {
-        "model": "gpt-4.1-mini",
-        "messages": [
-            {"role": "system", "content": "Respondé como asistente de intranet institucional."},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.2
-    }
-
     try:
+        payload_json = request.get_json(silent=True) or {}
+
+        # TU FRONTEND USA "question"
+        user_msg = payload_json.get("question", "").strip()
+
+        if not user_msg:
+            return jsonify({"answer": "Escribí una pregunta."})
+
+        context = build_context(user_msg)
+
+        if not context:
+            return jsonify({"answer": "No se encontraron notas relacionadas con la consulta."})
+
+        prompt = (
+            "Usá únicamente la información siguiente para responder.\n"
+            "Si no hay datos suficientes, decilo claramente.\n\n"
+            f"{context}\n\n"
+            f"Pregunta: {user_msg}"
+        )
+
+        payload = {
+            "model": "gpt-4.1-mini",
+            "messages": [
+                {"role": "system", "content": "Respondé como asistente de intranet institucional."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2
+        }
+
         r = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers={
@@ -151,13 +150,14 @@ def chat():
         data = r.json()
 
         if "choices" not in data:
-            return jsonify({"answer": "Error consultando OpenAI.", "debug": data}), 500
+            return jsonify({"answer": "Error consultando el modelo.", "debug": data})
 
         answer = data["choices"][0]["message"]["content"]
         return jsonify({"answer": answer})
 
     except Exception as e:
-        return jsonify({"answer": "Error interno del servidor.", "error": str(e)}), 500
+        print("ERROR /chat:", e)
+        return jsonify({"answer": "Error interno procesando la consulta."})
 
 
 # ------------------------
