@@ -111,6 +111,7 @@ def chat():
         payload_json = request.get_json(silent=True) or {}
 
         # TU FRONTEND USA "question"
+        print("JSON recibido:", payload_json)
         user_msg = payload_json.get("question", "").strip()
 
         if not user_msg:
