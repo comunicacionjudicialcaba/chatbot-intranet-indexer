@@ -2,14 +2,12 @@ from flask import Flask, render_template, jsonify, request
 import os
 import json
 import requests
-from openai import OpenAI
 
 app = Flask(__name__)
 
 DATA_FILE = "data.json"
 DATA_URL = "https://raw.githubusercontent.com/comunicacionjudicialcaba/chatbot-intranet-indexer/main/data.json"
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # =====================
 # HOME
