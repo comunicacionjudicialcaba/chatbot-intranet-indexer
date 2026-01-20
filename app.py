@@ -41,11 +41,26 @@ def normalize_text(t):
         t = t.replace(s, "")
     return t
 
+def is_listing_query(q):
+    q = q.lower()
+    triggers = [
+        "que cortes", "qué cortes", "list", "todas",
+        "que notas", "qué notas", "cuáles", "cuales"
+    ]
+    return any(t in q for t in triggers)
+
 
 # ------------------------
 # Construir contexto
 # ------------------------
 
+def is_listing_query(q):
+    q = q.lower()
+    triggers = [
+        "que cortes", "qué cortes", "list", "todas",
+        "que notas", "qué notas", "cuáles", "cuales"
+    ]
+    return any(t in q for t in triggers)
 def build_context(query, max_items=8):
 
     words = [normalize_text(w) for w in query.lower().split() if len(w) > 3]
@@ -72,7 +87,8 @@ def build_context(query, max_items=8):
         reverse=True
     )
 
-    matches = [item for _, item in scored[:max_items]]
+    limit = 50 if is_listing_query(query) else 8
+matches = [item for _, item in scored[:limit]]
 
     parts = []
     for m in matches:
