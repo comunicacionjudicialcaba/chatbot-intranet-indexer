@@ -11,7 +11,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 
 # ------------------------
-# Cargar data.json
+# Cargar data
 # ------------------------
 
 def load_data():
@@ -41,11 +41,14 @@ def normalize_text(t):
         t = t.replace(s, "")
     return t
 
+
 def is_listing_query(q):
     q = q.lower()
     triggers = [
-        "que cortes", "qué cortes", "list", "todas",
-        "que notas", "qué notas", "cuáles", "cuales"
+        "que cortes", "qué cortes",
+        "que notas", "qué notas",
+        "cuáles", "cuales",
+        "todas", "list"
     ]
     return any(t in q for t in triggers)
 
@@ -54,15 +57,7 @@ def is_listing_query(q):
 # Construir contexto
 # ------------------------
 
-def is_listing_query(q):
-    q = q.lower()
-    triggers = [
-        "que cortes", "qué cortes", "list", "todas",
-        "que notas", "qué notas", "cuáles", "cuales"
-    ]
-    return any(t in q for t in triggers)
-def build_context(query, max_items=8):
-
+def build_context(query):
     words = [normalize_text(w) for w in query.lower().split() if len(w) > 3]
 
     scored = []
@@ -76,7 +71,6 @@ def build_context(query, max_items=8):
         ])
 
         text_n = normalize_text(text)
-
         score = sum(1 for w in words if w in text_n)
 
         if score > 0:
@@ -88,7 +82,7 @@ def build_context(query, max_items=8):
     )
 
     limit = 50 if is_listing_query(query) else 8
-matches = [item for _, item in scored[:limit]]
+    matches = [item for _, item in scored[:limit]]
 
     parts = []
     for m in matches:
@@ -104,7 +98,7 @@ matches = [item for _, item in scored[:limit]]
 
 
 # ------------------------
-# Rutas web
+# Rutas
 # ------------------------
 
 @app.route("/")
@@ -118,21 +112,20 @@ def data():
 
 
 # ------------------------
-# Chatbot
+# Chat
 # ------------------------
 
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         payload_json = request.get_json(silent=True) or {}
-
-        # TU FRONTEND USA "question"
         print("JSON recibido:", payload_json)
+
         user_msg = (
-    payload_json.get("text")
-    or payload_json.get("question")
-    or ""
-).strip()
+            payload_json.get("text")
+            or payload_json.get("question")
+            or ""
+        ).strip()
 
         if not user_msg:
             return jsonify({"answer": "Escribí una pregunta."})
@@ -144,6 +137,7 @@ def chat():
 
         prompt = (
             "Usá únicamente la información siguiente para responder.\n"
+            "Listá todas las notas relevantes si la pregunta lo pide.\n"
             "Si no hay datos suficientes, decilo claramente.\n\n"
             f"{context}\n\n"
             f"Pregunta: {user_msg}"
