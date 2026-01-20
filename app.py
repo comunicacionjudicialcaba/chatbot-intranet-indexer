@@ -6,7 +6,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-DATA_FILE = "data.json"
+DATA_FILE = "/data/data.json"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 
