@@ -59,15 +59,17 @@ def parse_doc(doc_id):
                 if "textRun" in e:
                     text += e["textRun"].get("content", "")
 
-    blocks = [b.strip() for b in text.split("\n\n") if len(b.strip()) > 50]
+    blocks = [b.strip() for b in text.split("\n\n") if len(b.strip()) > 40]
 
     data = []
-    current = {}
+    current = None
 
     for block in blocks:
-        if block[:2].isdigit() and "/" in block[:10]:
+        # Detecta fecha tipo: "Lunes 30 de diciembre de 2025" o "03/01/2025"
+        if block[:2].isdigit() and ("/" in block[:10] or "de" in block[:20]):
             if current:
                 data.append(current)
+
             current = {
                 "fecha": block.strip(),
                 "titulo": "",
@@ -75,17 +77,22 @@ def parse_doc(doc_id):
                 "url": "",
                 "tipo": "doc"
             }
+
         elif block.startswith("http"):
-            current["url"] = block.strip()
-        elif not current.get("titulo"):
+            if current:
+                current["url"] = block.strip()
+
+        elif current and not current["titulo"]:
             current["titulo"] = block.strip()
-        else:
+
+        elif current:
             current["texto"] += block + "\n"
 
     if current:
         data.append(current)
 
     return data
+
 
 # =========================
 # PARSE SHEET
