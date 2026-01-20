@@ -112,7 +112,11 @@ def chat():
 
         # TU FRONTEND USA "question"
         print("JSON recibido:", payload_json)
-        user_msg = payload_json.get("text", "").strip()
+        user_msg = (
+    payload_json.get("text")
+    or payload_json.get("question")
+    or ""
+).strip()
 
         if not user_msg:
             return jsonify({"answer": "Escribí una pregunta."})
