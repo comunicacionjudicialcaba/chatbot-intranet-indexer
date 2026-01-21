@@ -58,51 +58,52 @@ def is_listing_query(q):
 # ------------------------
 
 def build_context(query):
-    words = [normalize_text(w) for w in query.lower().split() if len(w) > 3]
+    q = query.lower()
+    words = [normalize_text(w) for w in q.split() if len(w) > 3]
 
-    scored = []
+    candidates = []
 
     for item in DATA:
         text = " ".join([
             str(item.get("titulo", "")),
             str(item.get("texto", "")),
             str(item.get("seccion", "")),
-            str(item.get("autor", "")),
-            str(item.get("fecha", "")),
-        ])
+        ]).lower()
 
         text_n = normalize_text(text)
+
         score = sum(1 for w in words if w in text_n)
 
         if score > 0:
-            scored.append((score, item))
+            candidates.append(item)
 
-    # ordenar por score y por fecha (más nuevo primero)
-    scored.sort(
-        key=lambda x: (x[0], parse_date(x[1].get("fecha", ""))),
-        reverse=True
-    )
+    if not candidates:
+        return ""
 
-    q = query.lower()
+    # 🔥 CASO ESPECIAL: "último plenario"
+    if "plenario" in q and any(w in q for w in ["último", "reciente", "más nuevo"]):
+        plenos = [c for c in candidates if "plenario" in (c.get("titulo","").lower() + c.get("texto","").lower())]
 
-    # si pregunta por último / reciente → solo el más nuevo
-    if any(w in q for w in ["último", "reciente", "más nuevo", "más reciente"]):
-        matches = [item for _, item in scored[:1]]
+        plenos.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
+        matches = plenos[:1]
+
     else:
+        # ranking normal
+        candidates.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
         limit = 50 if is_listing_query(query) else 8
-        matches = [item for _, item in scored[:limit]]
+        matches = candidates[:limit]
 
     parts = []
     for m in matches:
         parts.append(
             f"Título: {m.get('titulo')}\n"
             f"Fecha: {m.get('fecha')}\n"
-            f"Autor: {m.get('autor')}\n"
-            f"Sección: {m.get('seccion')}\n"
             f"URL: {m.get('url')}\n"
+            f"Texto: {m.get('texto','')[:1500]}\n"
         )
 
     return "\n---\n".join(parts)
+
 
 
 
