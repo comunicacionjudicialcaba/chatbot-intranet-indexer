@@ -76,51 +76,47 @@ def detect_category(query):
 
 def build_context(query):
     q = query.lower()
-    category = detect_category(query)
     words = [normalize_text(w) for w in q.split() if len(w) > 3]
+
+    category = detect_category(query)
 
     candidates = []
 
     for item in DATA:
-    text = " ".join([
-        str(item.get("titulo", "")),
-        str(item.get("texto", "")),
-        str(item.get("seccion", "")),
-    ]).lower()
+        text = " ".join([
+            str(item.get("titulo", "")),
+            str(item.get("texto", "")),
+            str(item.get("seccion", "")),
+        ]).lower()
 
-    # 🔥 filtro por categoría
-    if category:
-        if category == "plenario" and "plenario" not in text:
-            continue
-        if category == "cortes" and not any(k in text for k in ["corte", "eje", "portal"]):
-            continue
-        if category == "turnos" and "turno" not in text:
-            continue
-        if category == "concursos" and not any(k in text for k in ["concurso", "design"]):
-            continue
-        if category == "obra_social" and "obra social" not in text:
-            continue
+        # -------- filtro por categoría --------
+        if category:
+            if category == "plenario" and "plenario" not in text:
+                continue
+            if category == "cortes" and not any(k in text for k in ["corte", "eje", "portal"]):
+                continue
+            if category == "turnos" and "turno" not in text:
+                continue
+            if category == "concursos" and not any(k in text for k in ["concurso", "design"]):
+                continue
+            if category == "obra_social" and "obra social" not in text:
+                continue
 
-        text_n = normalize_text(text)
+        score = sum(1 for w in words if w in normalize_text(text))
 
-        score = sum(1 for w in words if w in text_n)
-
-        if score > 0:
+        if score > 0 or category:
             candidates.append(item)
 
     if not candidates:
         return ""
 
-    # 🔥 CASO ESPECIAL: "último plenario"
-    if "plenario" in q and any(w in q for w in ["último", "reciente", "más nuevo"]):
-        plenos = [c for c in candidates if "plenario" in (c.get("titulo","").lower() + c.get("texto","").lower())]
+    # -------- ordenar por fecha (más nuevo primero) --------
+    candidates.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
 
-        plenos.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
-        matches = plenos[:1]
-
+    # -------- si pregunta por último --------
+    if any(w in q for w in ["último", "reciente", "más nuevo", "más reciente"]):
+        matches = candidates[:1]
     else:
-        # ranking normal
-        candidates.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
         limit = 50 if is_listing_query(query) else 8
         matches = candidates[:limit]
 
@@ -130,26 +126,11 @@ def build_context(query):
             f"Título: {m.get('titulo')}\n"
             f"Fecha: {m.get('fecha')}\n"
             f"URL: {m.get('url')}\n"
-            f"Contenido completo:\n{m.get('texto','')[:4000]}\n"
+            f"Contenido:\n{m.get('texto','')[:4000]}\n"
         )
 
     return "\n---\n".join(parts)
 
-
-
-
-# ------------------------
-# Rutas
-# ------------------------
-
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
-@app.route("/data")
-def data():
-    return jsonify(DATA)
 
 
 # ------------------------
