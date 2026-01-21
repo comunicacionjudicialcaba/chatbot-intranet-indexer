@@ -230,38 +230,32 @@
       renderResults();
     });
 
-  // ================= CHAT =================
+ <script>
+// ================= CHAT =================
 
-  function ask() {
-    const q = document.getElementById("question").value;
-    if (!q) return;
+function ask() {
+  const q = document.getElementById("question").value;
+  if (!q) return;
 
-    const chat = document.getElementById("chat");
+  const chat = document.getElementById("chat");
 
-    chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
+  chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
 
-    fetch("/chat", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ question: q })
-})
-.then(r => r.json())
-.then(res => {
-  chat.innerHTML += `<div class="message bot">${res.answer}</div>`;
-});
-    
-      if (res.links && res.links.length) {
-        html += `<div class="links"><strong>Links:</strong>`;
-        res.links.forEach(l => {
-          html += `<a href="${l}" target="_blank">${l}</a>`;
-        });
-        html += `</div>`;
-      }
-
-      chat.innerHTML += html;
-      document.getElementById("question").value = "";
-    });
-  }
+  fetch("/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: q })
+  })
+  .then(r => r.json())
+  .then(res => {
+    chat.innerHTML += `<div class="message bot">${res.answer}</div>`;
+    document.getElementById("question").value = "";
+  })
+  .catch(err => {
+    chat.innerHTML += `<div class="message bot">Error consultando el servidor</div>`;
+    console.error(err);
+  });
+}
 </script>
 
 </body>
