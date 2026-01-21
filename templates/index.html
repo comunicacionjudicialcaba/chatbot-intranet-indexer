@@ -241,14 +241,15 @@
     chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
 
     fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q })
-    })
-    .then(r => r.json())
-    .then(res => {
-      let html = `<div class="message bot">${res.answer}</div>`;
-
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ question: q })
+})
+.then(r => r.json())
+.then(res => {
+  chat.innerHTML += `<div class="message bot">${res.answer}</div>`;
+});
+    
       if (res.links && res.links.length) {
         html += `<div class="links"><strong>Links:</strong>`;
         res.links.forEach(l => {
