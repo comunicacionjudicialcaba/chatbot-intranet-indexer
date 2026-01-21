@@ -151,10 +151,48 @@ def parse_sheet(sheet_id):
 
     return data
 
+
+
 # =========================
 # MAIN
 # =========================
 
+def merge_by_url(records):
+    by_url = {}
+    no_url = []
+
+    for r in records:
+        url = r.get("url", "").strip()
+        if url:
+            if url not in by_url:
+                by_url[url] = []
+            by_url[url].append(r)
+        else:
+            no_url.append(r)
+
+    merged = []
+
+    for url, items in by_url.items():
+        base = {}
+
+        for it in items:
+            # prioriza datos del sheet
+            if it.get("tipo") == "sheet":
+                base.update(it)
+            else:
+                base.setdefault("fecha", it.get("fecha"))
+                base.setdefault("titulo", it.get("titulo"))
+                base.setdefault("texto", "")
+                base["texto"] += it.get("texto", "")
+
+        base["url"] = url
+        merged.append(base)
+
+    # agregar registros sin url (por si hay)
+    merged.extend(no_url)
+
+    return merged
+    
 def main():
     files = list_files()
 
@@ -171,9 +209,11 @@ def main():
         elif f["mimeType"] == "application/vnd.google-apps.spreadsheet":
             data.extend(parse_sheet(f["id"]))
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    data = merge_by_url(data)
 
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+    
     print(f"✔ Indexación completa: {len(data)} registros")
     
 if __name__ == "__main__":
