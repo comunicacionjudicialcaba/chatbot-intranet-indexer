@@ -130,8 +130,13 @@ def build_context(query):
         )
 
     return "\n---\n".join(parts)
+# ------------------------
+# Home
+# ------------------------
 
-
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 # ------------------------
 # Chat
