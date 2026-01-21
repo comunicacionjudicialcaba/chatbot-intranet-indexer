@@ -139,30 +139,6 @@ def parse_sheet(sheet_id):
     return data
 
 # =========================
-# GIT PUSH
-# =========================
-
-def git_push():
-    if not GITHUB_TOKEN:
-        print("⚠ No GITHUB_TOKEN, no se sube data.json")
-        return
-
-    try:
-        subprocess.run(["git", "config", "--global", "user.email", "worker@railway.app"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "Railway Worker"], check=True)
-
-        subprocess.run(["git", "add", "data.json"], check=True)
-        subprocess.run(["git", "commit", "-m", "Auto update data.json from Drive"], check=True)
-
-        push_url = REPO_URL.replace("https://", f"https://{GITHUB_TOKEN}@")
-        subprocess.run(["git", "push", push_url, "HEAD:main"], check=True)
-
-        print("✔ data.json subido a GitHub")
-
-    except Exception as e:
-        print("⚠ Error subiendo a GitHub:", e)
-
-# =========================
 # MAIN
 # =========================
 
