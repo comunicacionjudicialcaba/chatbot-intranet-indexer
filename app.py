@@ -51,6 +51,23 @@ def is_listing_query(q):
         "todas", "list"
     ]
     return any(t in q for t in triggers)
+ 
+def detect_category(query):
+    q = query.lower()
+
+    categories = {
+        "plenario": ["plenario", "consejo", "sesión"],
+        "cortes": ["corte", "interrupción", "caída", "sistema", "eje", "portal"],
+        "turnos": ["turno", "guardia", "feria"],
+        "concursos": ["concurso", "designación", "terna", "juez", "jueza"],
+        "obra_social": ["obra social", "afiliado", "cuota", "beneficio", "prestación"],
+    }
+
+    for cat, keys in categories.items():
+        if any(k in q for k in keys):
+            return cat
+
+    return None
 
 
 # ------------------------
@@ -59,16 +76,30 @@ def is_listing_query(q):
 
 def build_context(query):
     q = query.lower()
+    category = detect_category(query)
     words = [normalize_text(w) for w in q.split() if len(w) > 3]
 
     candidates = []
 
     for item in DATA:
-        text = " ".join([
-            str(item.get("titulo", "")),
-            str(item.get("texto", "")),
-            str(item.get("seccion", "")),
-        ]).lower()
+    text = " ".join([
+        str(item.get("titulo", "")),
+        str(item.get("texto", "")),
+        str(item.get("seccion", "")),
+    ]).lower()
+
+    # 🔥 filtro por categoría
+    if category:
+        if category == "plenario" and "plenario" not in text:
+            continue
+        if category == "cortes" and not any(k in text for k in ["corte", "eje", "portal"]):
+            continue
+        if category == "turnos" and "turno" not in text:
+            continue
+        if category == "concursos" and not any(k in text for k in ["concurso", "design"]):
+            continue
+        if category == "obra_social" and "obra social" not in text:
+            continue
 
         text_n = normalize_text(text)
 
