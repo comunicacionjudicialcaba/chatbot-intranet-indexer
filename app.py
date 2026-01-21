@@ -130,7 +130,7 @@ def build_context(query):
             f"Título: {m.get('titulo')}\n"
             f"Fecha: {m.get('fecha')}\n"
             f"URL: {m.get('url')}\n"
-            f"Texto: {m.get('texto','')[:1500]}\n"
+            f"Contenido completo:\n{m.get('texto','')[:4000]}\n"
         )
 
     return "\n---\n".join(parts)
