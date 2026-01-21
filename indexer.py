@@ -1,7 +1,6 @@
 import os
 import json
-import subprocess
-from datetime import datetime
+import re
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -13,20 +12,22 @@ FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID")
 SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
 OUTPUT_FILE = "data.json"
 
-REPO_URL = "https://github.com/comunicacionjudicialcaba/chatbot-intranet-indexer.git"
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-
 # =========================
 # GOOGLE AUTH
 # =========================
+
+if not SERVICE_ACCOUNT_JSON:
+    raise Exception("Falta GOOGLE_SERVICE_ACCOUNT_JSON")
 
 creds_info = json.loads(SERVICE_ACCOUNT_JSON)
 
 creds = service_account.Credentials.from_service_account_info(
     creds_info,
-    scopes=["https://www.googleapis.com/auth/drive.readonly",
-            "https://www.googleapis.com/auth/spreadsheets.readonly",
-            "https://www.googleapis.com/auth/documents.readonly"]
+    scopes=[
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/documents.readonly",
+    ],
 )
 
 drive_service = build("drive", "v3", credentials=creds)
@@ -41,15 +42,14 @@ def list_files():
     q = f"'{FOLDER_ID}' in parents and trashed = false"
     results = drive_service.files().list(
         q=q,
-        fields="files(id, name, mimeType)"
+        fields="files(id, name, mimeType)",
+        pageSize=1000,
     ).execute()
     return results.get("files", [])
 
 # =========================
 # PARSE DOC
 # =========================
-
-import re
 
 def parse_doc(doc_id):
     doc = docs_service.documents().get(documentId=doc_id).execute()
@@ -61,7 +61,6 @@ def parse_doc(doc_id):
                 if "textRun" in e:
                     text += e["textRun"].get("content", "")
 
-    # normalizar saltos
     lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     data = []
@@ -70,7 +69,6 @@ def parse_doc(doc_id):
     fecha_re = re.compile(r"^(Lunes|Martes|Miércoles|Jueves|Viernes)\s+\d{1,2}")
 
     for line in lines:
-        # nueva nota por fecha
         if fecha_re.match(line):
             if current:
                 data.append(current)
@@ -80,32 +78,27 @@ def parse_doc(doc_id):
                 "titulo": "",
                 "texto": "",
                 "url": "",
-                "tipo": "doc"
+                "tipo": "doc",
             }
             continue
 
         if not current:
             continue
 
-        # URL
         if line.startswith("http"):
             current["url"] = line
             continue
 
-        # título = primera línea después de fecha
         if not current["titulo"]:
             current["titulo"] = line
             continue
 
-        # resto es cuerpo
         current["texto"] += line + "\n"
 
     if current:
         data.append(current)
 
     return data
-
-
 
 # =========================
 # PARSE SHEET
@@ -114,7 +107,7 @@ def parse_doc(doc_id):
 def parse_sheet(sheet_id):
     sheet = sheets_service.spreadsheets().values().get(
         spreadsheetId=sheet_id,
-        range="A1:Z"
+        range="A1:Z",
     ).execute()
 
     values = sheet.get("values", [])
@@ -145,16 +138,14 @@ def parse_sheet(sheet_id):
             "autor": row[i_autor] if i_autor is not None and i_autor < len(row) else "",
             "seccion": row[i_seccion] if i_seccion is not None and i_seccion < len(row) else "",
             "url": row[i_url] if i_url is not None and i_url < len(row) else "",
-            "texto": ""
+            "texto": "",
         }
         data.append(item)
 
     return data
 
-
-
 # =========================
-# MAIN
+# MERGE BY URL
 # =========================
 
 def merge_by_url(records):
@@ -164,9 +155,7 @@ def merge_by_url(records):
     for r in records:
         url = r.get("url", "").strip()
         if url:
-            if url not in by_url:
-                by_url[url] = []
-            by_url[url].append(r)
+            by_url.setdefault(url, []).append(r)
         else:
             no_url.append(r)
 
@@ -176,7 +165,6 @@ def merge_by_url(records):
         base = {}
 
         for it in items:
-            # prioriza datos del sheet
             if it.get("tipo") == "sheet":
                 base.update(it)
             else:
@@ -188,11 +176,13 @@ def merge_by_url(records):
         base["url"] = url
         merged.append(base)
 
-    # agregar registros sin url (por si hay)
     merged.extend(no_url)
-
     return merged
-    
+
+# =========================
+# MAIN
+# =========================
+
 def main():
     files = list_files()
 
@@ -209,12 +199,16 @@ def main():
         elif f["mimeType"] == "application/vnd.google-apps.spreadsheet":
             data.extend(parse_sheet(f["id"]))
 
+    print("Registros antes de merge:", len(data))
+
     data = merge_by_url(data)
 
-with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    json.dump(data, f, ensure_ascii=False, indent=2)
-    
+    print("Registros después de merge:", len(data))
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
     print(f"✔ Indexación completa: {len(data)} registros")
-    
+
 if __name__ == "__main__":
     main()
