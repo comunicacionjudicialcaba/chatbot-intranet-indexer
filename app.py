@@ -65,6 +65,7 @@ def build_context(query):
     for item in DATA:
         text = " ".join([
             str(item.get("titulo", "")),
+            str(item.get("texto", "")),
             str(item.get("seccion", "")),
             str(item.get("autor", "")),
             str(item.get("fecha", "")),
@@ -73,21 +74,23 @@ def build_context(query):
         text_n = normalize_text(text)
         score = sum(1 for w in words if w in text_n)
 
-        q = user_msg.lower()
-
-if any(w in q for w in ["último", "reciente", "más nuevo"]):
-    matches = matches[:1]
-
         if score > 0:
             scored.append((score, item))
 
+    # ordenar por score y por fecha (más nuevo primero)
     scored.sort(
         key=lambda x: (x[0], parse_date(x[1].get("fecha", ""))),
         reverse=True
     )
 
-    limit = 50 if is_listing_query(query) else 8
-    matches = [item for _, item in scored[:limit]]
+    q = query.lower()
+
+    # si pregunta por último / reciente → solo el más nuevo
+    if any(w in q for w in ["último", "reciente", "más nuevo", "más reciente"]):
+        matches = [item for _, item in scored[:1]]
+    else:
+        limit = 50 if is_listing_query(query) else 8
+        matches = [item for _, item in scored[:limit]]
 
     parts = []
     for m in matches:
@@ -101,8 +104,6 @@ if any(w in q for w in ["último", "reciente", "más nuevo"]):
 
     return "\n---\n".join(parts)
 
-    matches.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
-    
 
 
 # ------------------------
