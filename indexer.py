@@ -162,7 +162,6 @@ def main():
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print(f"✔ Indexación completa: {len(data)} registros")
-    git_push()
-
+    
 if __name__ == "__main__":
     main()
