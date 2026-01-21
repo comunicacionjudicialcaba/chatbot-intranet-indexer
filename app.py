@@ -73,6 +73,11 @@ def build_context(query):
         text_n = normalize_text(text)
         score = sum(1 for w in words if w in text_n)
 
+        q = user_msg.lower()
+
+if any(w in q for w in ["último", "reciente", "más nuevo"]):
+    matches = matches[:1]
+
         if score > 0:
             scored.append((score, item))
 
@@ -95,6 +100,9 @@ def build_context(query):
         )
 
     return "\n---\n".join(parts)
+
+    matches.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
+    
 
 
 # ------------------------
