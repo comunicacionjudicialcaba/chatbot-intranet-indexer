@@ -11,7 +11,7 @@ from googleapiclient.discovery import build
 
 FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID")
 SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
-OUTPUT_FILE = "/data/data.json"
+OUTPUT_FILE = "data.json"
 
 REPO_URL = "https://github.com/comunicacionjudicialcaba/chatbot-intranet-indexer.git"
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
