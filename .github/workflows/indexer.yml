@@ -27,7 +27,7 @@ jobs:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
         run: |
-          python indexer.py
+          python -u indexer.py
 
       - name: Commit y push si hay cambios
         run: |
