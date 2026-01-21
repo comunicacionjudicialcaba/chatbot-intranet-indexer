@@ -49,6 +49,8 @@ def list_files():
 # PARSE DOC
 # =========================
 
+import re
+
 def parse_doc(doc_id):
     doc = docs_service.documents().get(documentId=doc_id).execute()
     text = ""
@@ -59,39 +61,50 @@ def parse_doc(doc_id):
                 if "textRun" in e:
                     text += e["textRun"].get("content", "")
 
-    blocks = [b.strip() for b in text.split("\n\n") if len(b.strip()) > 40]
+    # normalizar saltos
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     data = []
     current = None
 
-    for block in blocks:
-        # Detecta fecha tipo: "Lunes 30 de diciembre de 2025" o "03/01/2025"
-        if block[:2].isdigit() and ("/" in block[:10] or "de" in block[:20]):
+    fecha_re = re.compile(r"^(Lunes|Martes|Miércoles|Jueves|Viernes)\s+\d{1,2}")
+
+    for line in lines:
+        # nueva nota por fecha
+        if fecha_re.match(line):
             if current:
                 data.append(current)
 
             current = {
-                "fecha": block.strip(),
+                "fecha": line,
                 "titulo": "",
                 "texto": "",
                 "url": "",
                 "tipo": "doc"
             }
+            continue
 
-        elif block.startswith("http"):
-            if current:
-                current["url"] = block.strip()
+        if not current:
+            continue
 
-        elif current and not current["titulo"]:
-            current["titulo"] = block.strip()
+        # URL
+        if line.startswith("http"):
+            current["url"] = line
+            continue
 
-        elif current:
-            current["texto"] += block + "\n"
+        # título = primera línea después de fecha
+        if not current["titulo"]:
+            current["titulo"] = line
+            continue
+
+        # resto es cuerpo
+        current["texto"] += line + "\n"
 
     if current:
         data.append(current)
 
     return data
+
 
 
 # =========================
