@@ -177,7 +177,8 @@ def chat():
             return jsonify({"answer": "No se encontraron notas relacionadas con la consulta."})
 
         prompt = (
-            "Usá únicamente la información siguiente para responder.\n"
+            "Respondé SOLO usando la información de las notas.\n"
+            "Extraé los temas mencionados en el contenido, no solo el título.\n"
             "Listá todas las notas relevantes si la pregunta lo pide.\n"
             "Si no hay datos suficientes, decilo claramente.\n\n"
             f"{context}\n\n"
