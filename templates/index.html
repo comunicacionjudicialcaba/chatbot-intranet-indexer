@@ -39,13 +39,22 @@
   <option>2023</option>
 </select>
 
-<select id="category">
-  <option value="">Categoría</option>
-  <option value="plenario">Plenario</option>
-  <option value="corte">Cortes</option>
-  <option value="turno">Turnos</option>
-  <option value="concurso">Concursos</option>
-  <option value="obra social">Obra social</option>
+<select id="tipo" onchange="toggleSeccion()">
+  <option value="">Tipo</option>
+  <option>Artículo</option>
+  <option>Búsqueda de personal</option>
+  <option>Capacitaciones</option>
+  <option>Videos</option>
+</select>
+
+<select id="seccion" style="display:none">
+  <option value="">Sección</option>
+  <option>Avisos Generales</option>
+  <option>Gestión</option>
+  <option>Justicia Solidaria</option>
+  <option>Beneficios y Becas</option>
+  <option>Torneos y Concursos</option>
+  <option>Especiales</option>
 </select>
 
 <button onclick="search(1)">Buscar</button>
@@ -68,6 +77,12 @@
 <script>
 // -------- BUSCADOR --------
 
+function toggleSeccion(){
+  const tipo = document.getElementById("tipo").value;
+  document.getElementById("seccion").style.display =
+    tipo === "Artículo" ? "inline" : "none";
+}
+  
 function search(page=1){
   const q = document.getElementById("searchq").value.trim();
   const year = document.getElementById("year").value;
