@@ -2,16 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Chatbot Intranet</title>
+<title>Buscador + Chat Intranet</title>
 
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 input, select, button { padding: 6px; margin: 4px; }
-.result { border-bottom: 1px solid #ddd; padding: 8px 0; }
-.result a { display: block; color: #0066cc; }
+.result { border-bottom: 1px solid #ddd; padding: 10px 0; }
+.result a { color: #0066cc; display:block; }
+.copete { color:#555; font-size:0.9em; }
 .message { margin: 6px 0; }
 .user { font-weight: bold; }
-.bot { color: #333; background: #f4f4f4; padding: 6px; }
+.bot { background:#f4f4f4; padding:6px; }
 </style>
 
 <script>
@@ -35,15 +36,18 @@ function search(){
       box.innerHTML = "";
 
       if (!data.length){
-        box.innerHTML = "<p>No se encontraron resultados.</p>";
+        box.innerHTML = "<p><strong>La búsqueda no arrojó resultados.</strong></p>";
         return;
       }
 
       data.forEach(n => {
+        const copete = n.texto ? n.texto.split(".").slice(0,2).join(".") + "." : "";
+
         box.innerHTML += `
           <div class="result">
             <strong>${n.titulo}</strong><br>
-            <small>${n.fecha} · ${n.tipo}${n.seccion ? " · " + n.seccion : ""}</small><br>
+            <small>${n.fecha} · ${n.tipo || ""} ${n.seccion ? "· "+n.seccion : ""}</small>
+            <div class="copete">${copete}</div>
             <a href="${n.url}" target="_blank">Ver nota</a>
           </div>
         `;
@@ -71,7 +75,6 @@ function ask(){
   });
 }
 </script>
-
 </head>
 
 <body>
