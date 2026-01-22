@@ -1,7 +1,5 @@
 from flask import Flask, jsonify, request, render_template
-import json
-import os
-import requests
+import json, os, requests
 from datetime import datetime
 
 app = Flask(__name__)
@@ -9,255 +7,125 @@ app = Flask(__name__)
 DATA_FILE = "data.json"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-
 # ------------------------
-# Cargar data
+# DATA
 # ------------------------
 
 def load_data():
     if not os.path.exists(DATA_FILE):
         return []
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
+    with open(DATA_FILE,"r",encoding="utf-8") as f:
         return json.load(f)
-
 
 DATA = load_data()
 
-
-# ------------------------
-# Utilidades
-# ------------------------
-
 def parse_date(fecha):
     try:
-        return datetime.strptime(fecha.strip(), "%d/%m/%Y")
-    except Exception:
+        return datetime.strptime(fecha.strip(),"%d/%m/%Y")
+    except:
         return datetime.min
 
-
-def normalize_text(t):
-    t = t.lower()
-    for s in ["ciones", "ción", "ar", "er", "ir", "o", "a"]:
-        t = t.replace(s, "")
-    return t
-
-
-def is_listing_query(q):
-    q = q.lower()
-    triggers = [
-        "que cortes", "qué cortes",
-        "que notas", "qué notas",
-        "cuáles", "cuales",
-        "todas", "list"
-    ]
-    return any(t in q for t in triggers)
- 
-def detect_category(query):
-    q = query.lower()
-
-    categories = {
-        "plenario": ["plenario", "consejo", "sesión"],
-        "cortes": ["corte", "interrupción", "caída", "sistema", "eje", "portal"],
-        "turnos": ["turno", "guardia", "feria"],
-        "concursos": ["concurso", "designación", "terna", "juez", "jueza"],
-        "obra_social": ["obra social", "afiliado", "cuota", "beneficio", "prestación"],
-    }
-
-    for cat, keys in categories.items():
-        if any(k in q for k in keys):
-            return cat
-
-    return None
-
-
 # ------------------------
-# Construir contexto
-# ------------------------
-
-def build_context(query):
-    q = query.lower()
-    words = [normalize_text(w) for w in q.split() if len(w) > 3]
-
-    category = detect_category(query)
-
-    candidates = []
-
-    for item in DATA:
-        text = " ".join([
-            str(item.get("titulo", "")),
-            str(item.get("texto", "")),
-            str(item.get("seccion", "")),
-        ]).lower()
-
-        # -------- filtro por categoría --------
-        if category:
-            if category == "plenario" and "plenario" not in text:
-                continue
-            if category == "cortes" and not any(k in text for k in ["corte", "eje", "portal"]):
-                continue
-            if category == "turnos" and "turno" not in text:
-                continue
-            if category == "concursos" and not any(k in text for k in ["concurso", "design"]):
-                continue
-            if category == "obra_social" and "obra social" not in text:
-                continue
-
-        score = sum(1 for w in words if w in normalize_text(text))
-
-        if score > 0 or category:
-            candidates.append(item)
-
-    if not candidates:
-        return ""
-
-    # -------- ordenar por fecha (más nuevo primero) --------
-    candidates.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
-
-    # -------- si pregunta por último --------
-    if any(w in q for w in ["último", "reciente", "más nuevo", "más reciente"]):
-        matches = candidates[:1]
-    else:
-        limit = 50 if is_listing_query(query) else 8
-        matches = candidates[:limit]
-
-    parts = []
-    for m in matches:
-        parts.append(
-            f"Título: {m.get('titulo')}\n"
-            f"Fecha: {m.get('fecha')}\n"
-            f"URL: {m.get('url')}\n"
-            f"Contenido:\n{m.get('texto','')[:4000]}\n"
-        )
-
-    return "\n---\n".join(parts)
-# ------------------------
-# Home
+# ROUTES
 # ------------------------
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
+@app.route("/data")
+def data():
+    return jsonify(DATA)
+
 # ------------------------
-# Search
+# SEARCH
 # ------------------------
 
 @app.route("/search")
 def search():
-    q = request.args.get("q", "").lower()
-    year = request.args.get("year")
-    tipo = request.args.get("tipo")
-    seccion = request.args.get("seccion")
-    page = int(request.args.get("page", 1))
-    PER_PAGE = 10
+    q = request.args.get("q","").lower()
+    year = request.args.get("year","")
+    tipo = request.args.get("tipo","")
+    seccion = request.args.get("seccion","")
 
-    results = []
+    res = []
 
-    for item in DATA:
+    for n in DATA:
         text = " ".join([
-            str(item.get("titulo", "")),
-            str(item.get("texto", "")),
-            str(item.get("seccion", "")),
+            str(n.get("titulo","")),
+            str(n.get("texto",""))
         ]).lower()
 
         if q and q not in text:
             continue
 
-        if year and not item.get("fecha", "").endswith(year):
+        if year and not n.get("fecha","").endswith(year):
             continue
 
-        if tipo and item.get("tipo") != tipo:
+        if tipo and n.get("tipo") != tipo:
             continue
 
-        if seccion and item.get("seccion") != seccion:
+        if seccion and n.get("seccion") != seccion:
             continue
 
-        results.append(item)
+        res.append(n)
 
-    results.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
-
-    total = len(results)
-    start = (page - 1) * PER_PAGE
-    end = start + PER_PAGE
-
-    return jsonify({
-        "total": total,
-        "page": page,
-        "per_page": PER_PAGE,
-        "results": results[start:end]
-    })
-
-
+    res.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
+    return jsonify(res[:50])
 
 # ------------------------
-# Chat
+# CHAT
 # ------------------------
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    try:
-        payload_json = request.get_json(silent=True) or {}
-        print("JSON recibido:", payload_json)
+    payload = request.get_json(silent=True) or {}
+    user_msg = payload.get("question","").strip()
 
-        user_msg = (
-            payload_json.get("text")
-            or payload_json.get("question")
-            or ""
-        ).strip()
+    if not user_msg:
+        return jsonify({"answer":"Escribí una pregunta."})
 
-        if not user_msg:
-            return jsonify({"answer": "Escribí una pregunta."})
+    context = "\n".join([
+        f"{n.get('titulo')} | {n.get('fecha')} | {n.get('url')}"
+        for n in DATA[:60]
+    ])
 
-        context = build_context(user_msg)
+    prompt = f"""
+Usá solo esta información para responder:
 
-        if not context:
-            return jsonify({"answer": "No se encontraron notas relacionadas con la consulta."})
+{context}
 
-        prompt = (
-            "Respondé SOLO usando la información de las notas.\n"
-            "Extraé los temas mencionados en el contenido, no solo el título.\n"
-            "Listá todas las notas relevantes si la pregunta lo pide.\n"
-            "Si no hay datos suficientes, decilo claramente.\n\n"
-            f"{context}\n\n"
-            f"Pregunta: {user_msg}"
-        )
+Pregunta: {user_msg}
+"""
 
-        payload = {
-            "model": "gpt-4.1-mini",
-            "messages": [
-                {"role": "system", "content": "Respondé como asistente de intranet institucional."},
-                {"role": "user", "content": prompt}
+    r = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type":"application/json"
+        },
+        json={
+            "model":"gpt-4.1-mini",
+            "messages":[
+                {"role":"system","content":"Asistente institucional de intranet"},
+                {"role":"user","content":prompt}
             ],
-            "temperature": 0.2
-        }
+            "temperature":0.2
+        },
+        timeout=60
+    )
 
-        r = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json=payload,
-            timeout=60
-        )
+    data = r.json()
 
-        data = r.json()
+    if "choices" not in data:
+        return jsonify({"answer":"Error consultando modelo"})
 
-        if "choices" not in data:
-            return jsonify({"answer": "Error consultando el modelo.", "debug": data})
-
-        answer = data["choices"][0]["message"]["content"]
-        return jsonify({"answer": answer})
-
-    except Exception as e:
-        print("ERROR /chat:", e)
-        return jsonify({"answer": "Error interno procesando la consulta."})
-
+    return jsonify({"answer": data["choices"][0]["message"]["content"]})
 
 # ------------------------
-# Run
+# RUN
 # ------------------------
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT",8080))
     app.run(host="0.0.0.0", port=port)
