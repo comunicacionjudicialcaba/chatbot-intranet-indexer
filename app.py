@@ -48,18 +48,13 @@ def data():
 def search():
     q = request.args.get("q","").lower().strip()
     year = request.args.get("year","").strip()
-    tipo = request.args.get("tipo","").strip()
-    seccion = request.args.get("seccion","").strip()
 
     res = []
 
     for n in DATA:
-
         titulo = safe(n.get("titulo","")).lower()
         texto = safe(n.get("texto","")).lower()
         fecha = safe(n.get("fecha",""))
-        ntipo = safe(n.get("tipo",""))
-        nseccion = safe(n.get("seccion",""))
 
         fulltext = f"{titulo} {texto}"
 
@@ -67,12 +62,6 @@ def search():
             continue
 
         if year and not fecha.endswith(year):
-            continue
-
-        if tipo and ntipo != tipo:
-            continue
-
-        if seccion and nseccion != seccion:
             continue
 
         res.append(n)
@@ -99,8 +88,6 @@ def chat():
         context_parts.append(
             f"Título: {safe(n.get('titulo'))}\n"
             f"Fecha: {safe(n.get('fecha'))}\n"
-            f"Tipo: {safe(n.get('tipo'))}\n"
-            f"Sección: {safe(n.get('seccion'))}\n"
             f"URL: {safe(n.get('url'))}\n"
             f"Texto: {safe(n.get('texto'))[:2000]}\n"
         )
@@ -137,7 +124,7 @@ Pregunta: {user_msg}
     data = r.json()
 
     if "choices" not in data:
-        return jsonify({"answer":"Error consultando el modelo"})
+        return jsonify({"answer":"Error consultando modelo"})
 
     return jsonify({"answer": data["choices"][0]["message"]["content"]})
 
