@@ -1,35 +1,84 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Intranet – Buscador y Chatbot</title>
-  <style>
-    body { font-family: Arial; background:#f6f6f6; padding:30px; }
-    #box { background:white; padding:20px; border-radius:8px; max-width:1000px; margin:auto; }
+<meta charset="UTF-8">
+<title>Chatbot Intranet</title>
 
-    h2 { margin-top:30px; }
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+input, select, button { padding: 6px; margin: 4px; }
+.result { border-bottom: 1px solid #ddd; padding: 8px 0; }
+.result a { display: block; color: #0066cc; }
+.message { margin: 6px 0; }
+.user { font-weight: bold; }
+.bot { color: #333; background: #f4f4f4; padding: 6px; }
+</style>
 
-    input { padding:10px; width:70%; font-size:16px; }
-    button { padding:10px 14px; font-size:16px; cursor:pointer; }
+<script>
+function toggleSeccion(){
+  const tipo = document.getElementById("tipo").value;
+  document.getElementById("seccion").style.display =
+    tipo === "Artículo" ? "inline" : "none";
+}
 
-    .result { margin:12px 0; }
-    .result a { font-weight:bold; text-decoration:none; color:#1a0dab; }
-    .meta { color:#555; font-size:13px; }
+// ================= BUSCADOR =================
+function search(){
+  const q = document.getElementById("searchq").value.trim();
+  const year = document.getElementById("year").value;
+  const tipo = document.getElementById("tipo").value;
+  const seccion = document.getElementById("seccion").value;
 
-    .message { margin:10px 0; padding:10px; border-radius:6px; }
-    .user { background:#e3f2fd; }
-    .bot { background:#e8f5e9; white-space:pre-wrap; }
-  </style>
+  fetch(`/search?q=${encodeURIComponent(q)}&year=${year}&tipo=${tipo}&seccion=${seccion}`)
+    .then(r => r.json())
+    .then(data => {
+      const box = document.getElementById("results");
+      box.innerHTML = "";
+
+      if (!data.length){
+        box.innerHTML = "<p>No se encontraron resultados.</p>";
+        return;
+      }
+
+      data.forEach(n => {
+        box.innerHTML += `
+          <div class="result">
+            <strong>${n.titulo}</strong><br>
+            <small>${n.fecha} · ${n.tipo}${n.seccion ? " · " + n.seccion : ""}</small><br>
+            <a href="${n.url}" target="_blank">Ver nota</a>
+          </div>
+        `;
+      });
+    });
+}
+
+// ================= CHAT =================
+function ask(){
+  const q = document.getElementById("question").value.trim();
+  if (!q) return;
+
+  const chat = document.getElementById("chat");
+  chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
+
+  fetch("/chat",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ question: q })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    chat.innerHTML += `<div class="message bot">${res.answer}</div>`;
+    document.getElementById("question").value="";
+  });
+}
+</script>
+
 </head>
 
 <body>
-<div id="box">
-
-<!-- ================= BUSCADOR ================= -->
 
 <h2>🔍 Buscador de notas</h2>
 
-<input id="searchq" placeholder="Buscar por palabras clave...">
+<input id="searchq" placeholder="Buscar texto...">
 
 <select id="year">
   <option value="">Año</option>
@@ -57,102 +106,18 @@
   <option>Especiales</option>
 </select>
 
-<button onclick="search(1)">Buscar</button>
+<button onclick="search()">Buscar</button>
 
 <div id="results"></div>
-<div id="pages"></div>
 
-
-<!-- ================= CHAT ================= -->
+<hr>
 
 <h2>💬 Chatbot</h2>
 
-<input id="question" placeholder="Hacé una pregunta en lenguaje natural...">
-<button onclick="ask()">Preguntar</button>
+<input id="question" placeholder="Escribí tu pregunta..." style="width:70%">
+<button onclick="ask()">Enviar</button>
 
 <div id="chat"></div>
-
-</div>
-
-<script>
-// -------- BUSCADOR --------
-
-function toggleSeccion(){
-  const tipo = document.getElementById("tipo").value;
-  document.getElementById("seccion").style.display =
-    tipo === "Artículo" ? "inline" : "none";
-}
-  
-function search(page=1){
-  const q = document.getElementById("searchq").value.trim();
-  const year = document.getElementById("year").value;
-  const category = document.getElementById("category").value;
-
-  const url = `/search?q=${encodeURIComponent(q)}&year=${year}&category=${category}&page=${page}`;
-
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      const box = document.getElementById("results");
-      const pages = document.getElementById("pages");
-      box.innerHTML = "";
-      pages.innerHTML = "";
-
-      if(!data.results.length){
-        box.innerHTML = "<p>No se encontraron resultados.</p>";
-        return;
-      }
-
-      data.results.forEach(n => {
-        const copete = (n.texto || "").split(".").slice(0,2).join(".") + ".";
-
-        box.innerHTML += `
-          <div class="result">
-            <a href="${n.url}" target="_blank">${n.titulo}</a>
-            <div class="meta">${n.fecha} · ${n.seccion || ""} · ${n.autor || ""}</div>
-            <div>${copete}</div>
-          </div>
-        `;
-      });
-
-      const totalPages = Math.ceil(data.total / data.per_page);
-
-      for(let i=1;i<=totalPages;i++){
-        pages.innerHTML += `<button onclick="search(${i})">${i}</button> `;
-      }
-    });
-}
-
-
-// -------- CHAT --------
-
-function ask(){
-  const input = document.getElementById("question");
-  const q = input.value.trim();
-  if(!q) return;
-
-  const chat = document.getElementById("chat");
-  chat.innerHTML += `<div class="message user"><b>Vos:</b> ${q}</div>`;
-
-  fetch("/chat",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ question:q })
-  })
-  .then(r=>r.json())
-  .then(res=>{
-    chat.innerHTML += `<div class="message bot"><b>Bot:</b> ${res.answer}</div>`;
-    input.value="";
-  });
-}
-</script>
-  <script>
-function search(page=1){
-  console.log("🔎 search() ejecutado");
-  ...
-}
-</script>
-
 
 </body>
 </html>
