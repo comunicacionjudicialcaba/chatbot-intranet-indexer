@@ -33,11 +33,16 @@ jobs:
           DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
         run: |
           python -u indexer.py
-
+      
+      - name: Generar chunks
+        run: |
+          python -u chunker.py
+               
+          
       - name: Commit y push si hay cambios
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data.json
-          git diff --cached --quiet || git commit -m "Auto update data.json"
+          git add data.json chunk.json
+          git diff --cached --quiet || git commit -m "Auto update data.json + chunks.json"
           git push
