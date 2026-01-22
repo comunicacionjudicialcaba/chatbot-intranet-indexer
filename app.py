@@ -139,6 +139,34 @@ def home():
     return render_template("index.html")
 
 # ------------------------
+# Search
+# ------------------------
+
+@app.route("/search")
+def search():
+    q = request.args.get("q", "").lower()
+
+    if not q:
+        return jsonify([])
+
+    results = []
+
+    for item in DATA:
+        text = " ".join([
+            str(item.get("titulo", "")),
+            str(item.get("texto", "")),
+            str(item.get("seccion", "")),
+            str(item.get("autor", "")),
+        ]).lower()
+
+        if q in text:
+            results.append(item)
+
+    results.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
+
+    return jsonify(results[:50])
+
+# ------------------------
 # Chat
 # ------------------------
 
