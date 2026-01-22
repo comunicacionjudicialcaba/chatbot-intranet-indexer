@@ -1,15 +1,19 @@
-import json, os, math
+import json
 
 INPUT = "data.json"
 OUTPUT = "chunks.json"
 
-CHUNK_SIZE = 800   # caracteres
-OVERLAP = 150      # solapamiento para no cortar ideas
+CHUNK_SIZE = 800
+OVERLAP = 150
+
 
 def chunk_text(text, size, overlap):
     chunks = []
     start = 0
     n = len(text)
+
+    if n <= size:
+        return [text.strip()]
 
     while start < n:
         end = start + size
@@ -27,19 +31,37 @@ with open(INPUT, "r", encoding="utf-8") as f:
 
 all_chunks = []
 
-for item in data:
-    texto = item.get("texto", "")
-    if not texto or len(texto) < 50:
+for idx, item in enumerate(data):
+    titulo = item.get("titulo") or ""
+    fecha = item.get("fecha") or ""
+    seccion = item.get("seccion") or ""
+    tipo = item.get("tipo") or ""
+    url = item.get("url") or f"item-{idx}"
+
+    texto = item.get("texto") or ""
+
+    # -------- construir texto base para embeddings --------
+    base_text = (
+        f"Título: {titulo}\n"
+        f"Fecha: {fecha}\n"
+        f"Tipo: {tipo}\n"
+        f"Sección: {seccion}\n\n"
+        f"{texto}"
+    ).strip()
+
+    if len(base_text) < 40:
         continue
 
-    parts = chunk_text(texto, CHUNK_SIZE, OVERLAP)
+    parts = chunk_text(base_text, CHUNK_SIZE, OVERLAP)
 
     for i, part in enumerate(parts):
         all_chunks.append({
-            "id": f"{item.get('url','') }#{i}",
-            "titulo": item.get("titulo"),
-            "fecha": item.get("fecha"),
-            "url": item.get("url"),
+            "id": f"{url}#chunk-{i}",
+            "url": url,
+            "titulo": titulo,
+            "fecha": fecha,
+            "tipo": tipo,
+            "seccion": seccion,
             "texto": part
         })
 
