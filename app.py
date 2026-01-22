@@ -25,6 +25,9 @@ def parse_date(fecha):
     except:
         return datetime.min
 
+def safe(v):
+    return v if v not in [None, "", "null"] else ""
+
 # ------------------------
 # ROUTES
 # ------------------------
@@ -43,34 +46,39 @@ def data():
 
 @app.route("/search")
 def search():
-    q = request.args.get("q","").lower()
-    year = request.args.get("year","")
-    tipo = request.args.get("tipo","")
-    seccion = request.args.get("seccion","")
+    q = request.args.get("q","").lower().strip()
+    year = request.args.get("year","").strip()
+    tipo = request.args.get("tipo","").strip()
+    seccion = request.args.get("seccion","").strip()
 
     res = []
 
     for n in DATA:
-        text = " ".join([
-            str(n.get("titulo","")),
-            str(n.get("texto",""))
-        ]).lower()
 
-        if q and q not in text:
+        titulo = safe(n.get("titulo","")).lower()
+        texto = safe(n.get("texto","")).lower()
+        fecha = safe(n.get("fecha",""))
+        ntipo = safe(n.get("tipo",""))
+        nseccion = safe(n.get("seccion",""))
+
+        fulltext = f"{titulo} {texto}"
+
+        if q and q not in fulltext:
             continue
 
-        if year and not n.get("fecha","").endswith(year):
+        if year and not fecha.endswith(year):
             continue
 
-        if tipo and n.get("tipo") != tipo:
+        if tipo and ntipo != tipo:
             continue
 
-        if seccion and n.get("seccion") != seccion:
+        if seccion and nseccion != seccion:
             continue
 
         res.append(n)
 
     res.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
+
     return jsonify(res[:50])
 
 # ------------------------
@@ -85,13 +93,24 @@ def chat():
     if not user_msg:
         return jsonify({"answer":"Escribí una pregunta."})
 
-    context = "\n".join([
-        f"{n.get('titulo')} | {n.get('fecha')} | {n.get('url')}"
-        for n in DATA[:60]
-    ])
+    context_parts = []
+
+    for n in sorted(DATA, key=lambda x: parse_date(x.get("fecha","")), reverse=True)[:80]:
+        context_parts.append(
+            f"Título: {safe(n.get('titulo'))}\n"
+            f"Fecha: {safe(n.get('fecha'))}\n"
+            f"Tipo: {safe(n.get('tipo'))}\n"
+            f"Sección: {safe(n.get('seccion'))}\n"
+            f"URL: {safe(n.get('url'))}\n"
+            f"Texto: {safe(n.get('texto'))[:2000]}\n"
+        )
+
+    context = "\n---\n".join(context_parts)
 
     prompt = f"""
-Usá solo esta información para responder:
+Usá únicamente la información de las notas para responder.
+Si hay más de una nota relevante, mencioná todas con su link.
+Si no hay datos suficientes, decilo claramente.
 
 {context}
 
@@ -118,7 +137,7 @@ Pregunta: {user_msg}
     data = r.json()
 
     if "choices" not in data:
-        return jsonify({"answer":"Error consultando modelo"})
+        return jsonify({"answer":"Error consultando el modelo"})
 
     return jsonify({"answer": data["choices"][0]["message"]["content"]})
 
