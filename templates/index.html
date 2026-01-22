@@ -30,9 +30,29 @@
 <h2>🔍 Buscador de notas</h2>
 
 <input id="searchq" placeholder="Buscar por palabras clave...">
-<button onclick="search()">Buscar</button>
+
+<select id="year">
+  <option value="">Año</option>
+  <option>2026</option>
+  <option>2025</option>
+  <option>2024</option>
+  <option>2023</option>
+</select>
+
+<select id="category">
+  <option value="">Categoría</option>
+  <option value="plenario">Plenario</option>
+  <option value="corte">Cortes</option>
+  <option value="turno">Turnos</option>
+  <option value="concurso">Concursos</option>
+  <option value="obra social">Obra social</option>
+</select>
+
+<button onclick="search(1)">Buscar</button>
 
 <div id="results"></div>
+<div id="pages"></div>
+
 
 <!-- ================= CHAT ================= -->
 
@@ -48,31 +68,46 @@
 <script>
 // -------- BUSCADOR --------
 
-function search(){
+function search(page=1){
   const q = document.getElementById("searchq").value.trim();
-  if(!q) return;
+  const year = document.getElementById("year").value;
+  const category = document.getElementById("category").value;
 
-  fetch(`/search?q=${encodeURIComponent(q)}`)
+  const url = `/search?q=${encodeURIComponent(q)}&year=${year}&category=${category}&page=${page}`;
+
+  fetch(url)
     .then(r => r.json())
     .then(data => {
       const box = document.getElementById("results");
+      const pages = document.getElementById("pages");
       box.innerHTML = "";
+      pages.innerHTML = "";
 
-      if(!data.length){
+      if(!data.results.length){
         box.innerHTML = "<p>No se encontraron resultados.</p>";
         return;
       }
 
-      data.forEach(n => {
+      data.results.forEach(n => {
+        const copete = (n.texto || "").split(".").slice(0,2).join(".") + ".";
+
         box.innerHTML += `
           <div class="result">
             <a href="${n.url}" target="_blank">${n.titulo}</a>
             <div class="meta">${n.fecha} · ${n.seccion || ""} · ${n.autor || ""}</div>
+            <div>${copete}</div>
           </div>
         `;
       });
+
+      const totalPages = Math.ceil(data.total / data.per_page);
+
+      for(let i=1;i<=totalPages;i++){
+        pages.innerHTML += `<button onclick="search(${i})">${i}</button> `;
+      }
     });
 }
+
 
 // -------- CHAT --------
 
