@@ -145,9 +145,10 @@ def home():
 @app.route("/search")
 def search():
     q = request.args.get("q", "").lower()
-
-    if not q:
-        return jsonify([])
+    year = request.args.get("year")
+    category = request.args.get("category")
+    page = int(request.args.get("page", 1))
+    PER_PAGE = 10
 
     results = []
 
@@ -156,15 +157,32 @@ def search():
             str(item.get("titulo", "")),
             str(item.get("texto", "")),
             str(item.get("seccion", "")),
-            str(item.get("autor", "")),
         ]).lower()
 
-        if q in text:
-            results.append(item)
+        if q and q not in text:
+            continue
+
+        if year and not item.get("fecha","").endswith(year):
+            continue
+
+        if category and category.lower() not in text:
+            continue
+
+        results.append(item)
 
     results.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
 
-    return jsonify(results[:50])
+    total = len(results)
+    start = (page - 1) * PER_PAGE
+    end = start + PER_PAGE
+
+    return jsonify({
+        "total": total,
+        "page": page,
+        "per_page": PER_PAGE,
+        "results": results[start:end]
+    })
+
 
 # ------------------------
 # Chat
