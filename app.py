@@ -166,13 +166,14 @@ def search():
             continue
 
    tipo = request.args.get("tipo")
-   seccion = request.args.get("seccion")
+seccion = request.args.get("seccion")
 
-        if tipo and item.get("tipo") != tipo:
+if tipo and item.get("tipo") != tipo:
     continue
 
-        if seccion and item.get("seccion") != seccion:
+if seccion and item.get("seccion") != seccion:
     continue
+
 
         results.append(item)
 
