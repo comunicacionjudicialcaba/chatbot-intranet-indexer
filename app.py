@@ -146,7 +146,8 @@ def home():
 def search():
     q = request.args.get("q", "").lower()
     year = request.args.get("year")
-    category = request.args.get("category")
+    tipo = request.args.get("tipo")
+    seccion = request.args.get("seccion")
     page = int(request.args.get("page", 1))
     PER_PAGE = 10
 
@@ -162,22 +163,18 @@ def search():
         if q and q not in text:
             continue
 
-        if year and not item.get("fecha","").endswith(year):
+        if year and not item.get("fecha", "").endswith(year):
             continue
 
-   tipo = request.args.get("tipo")
-seccion = request.args.get("seccion")
+        if tipo and item.get("tipo") != tipo:
+            continue
 
-if tipo and item.get("tipo") != tipo:
-    continue
-
-if seccion and item.get("seccion") != seccion:
-    continue
-
+        if seccion and item.get("seccion") != seccion:
+            continue
 
         results.append(item)
 
-    results.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
+    results.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
 
     total = len(results)
     start = (page - 1) * PER_PAGE
@@ -189,6 +186,7 @@ if seccion and item.get("seccion") != seccion:
         "per_page": PER_PAGE,
         "results": results[start:end]
     })
+
 
 
 # ------------------------
