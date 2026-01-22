@@ -1,245 +1,70 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Buscador y Chatbot Intranet</title>
+  <meta charset="UTF-8" />
+  <title>Chatbot Intranet</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 30px;
+      background: #f6f6f6;
     }
-    input, select, button, textarea {
-      width: 100%;
+    #box {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 900px;
+      margin: auto;
+    }
+    #question {
+      width: 75%;
       padding: 10px;
       font-size: 16px;
-      margin-bottom: 10px;
     }
     button {
+      padding: 10px 16px;
+      font-size: 16px;
+      margin-left: 8px;
       cursor: pointer;
     }
-    .controls {
-      max-width: 800px;
-      margin-bottom: 20px;
-    }
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .row > div {
-      flex: 1;
-      min-width: 180px;
-    }
-    .result {
-      margin-top: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #ccc;
-    }
-    .title {
-      font-weight: bold;
-      font-size: 18px;
-    }
-    .meta {
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 5px;
-    }
-    .chat {
-      margin-top: 50px;
-      max-width: 800px;
-      border-top: 2px solid #000;
-      padding-top: 20px;
+    #chat {
+      margin-top: 25px;
     }
     .message {
-      margin-bottom: 15px;
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 6px;
     }
     .user {
-      font-weight: bold;
+      background: #e3f2fd;
     }
     .bot {
-      background: #f4f4f4;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .links a {
-      display: block;
-      font-size: 14px;
+      background: #e8f5e9;
+      white-space: pre-wrap;
     }
   </style>
 </head>
+
 <body>
 
-<h1>Buscador de la Intranet</h1>
+<div id="box">
+  <h2>Buscador y Chat — Intranet</h2>
 
-<div class="controls">
-
-  <input
-    type="text"
-    id="search"
-    placeholder="Buscar por título, categoría o autor…"
-  >
-
-  <div class="row">
-    <div>
-      <label><strong>Año</strong></label>
-      <select id="year">
-        <option value="">Todos</option>
-      </select>
-    </div>
-
-    <div>
-      <label><strong>Categoría</strong></label>
-      <select id="category">
-        <option value="">Todas</option>
-      </select>
-    </div>
-
-    <div>
-      <label><strong>Ordenar por</strong></label>
-      <select id="order">
-        <option value="relevancia">Relevancia</option>
-        <option value="fecha">Más recientes</option>
-      </select>
-    </div>
-  </div>
-
-  <p id="info" style="color:#666; font-size:14px;">
-    Se muestran hasta 50 resultados que coinciden con la búsqueda.
-  </p>
-
-</div>
-
-<div id="results"></div>
-
-<!-- ================= CHATBOT ================= -->
-
-<div class="chat">
-  <h2>Chatbot de la Intranet</h2>
-
-  <textarea
-    id="question"
-    rows="3"
-    placeholder="Escribí tu pregunta… (ej: ¿Hubo cortes en EJE en enero?)"
-  ></textarea>
-
-  <button onclick="ask()">Preguntar</button>
+  <input id="question" type="text" placeholder="Escribí tu pregunta..." />
+  <button onclick="ask()">Buscar</button>
 
   <div id="chat"></div>
 </div>
 
 <script>
-  let data = [];
-
-  function parseDate(d) {
-    if (!d) return null;
-    const p = d.split("/");
-    return new Date(p[2], p[1] - 1, p[0]);
-  }
-
-  function getYear(item) {
-    if (!item.fecha) return "";
-    return item.fecha.split("/")[2];
-  }
-
-  function renderResults() {
-    const q = document.getElementById("search").value.toLowerCase();
-    const year = document.getElementById("year").value;
-    const category = document.getElementById("category").value;
-    const order = document.getElementById("order").value;
-
-    let results = data.filter(item => {
-      if (
-        q &&
-        !(
-          item.titulo?.toLowerCase().includes(q) ||
-          item.seccion?.toLowerCase().includes(q) ||
-          item.autor?.toLowerCase().includes(q)
-        )
-      ) return false;
-
-      if (year && getYear(item) !== year) return false;
-      if (category && item.seccion !== category) return false;
-
-      return true;
-    });
-
-    if (order === "fecha") {
-      results.sort((a, b) => parseDate(b.fecha) - parseDate(a.fecha));
-      document.getElementById("info").innerText =
-        "Se muestran los 50 resultados más recientes que coinciden con la búsqueda.";
-    } else {
-      document.getElementById("info").innerText =
-        "Se muestran hasta 50 resultados que coinciden con la búsqueda.";
-    }
-
-    const container = document.getElementById("results");
-    container.innerHTML = "";
-
-    results.slice(0, 50).forEach(item => {
-      const div = document.createElement("div");
-      div.className = "result";
-      div.innerHTML = `
-        <div class="title">${item.titulo}</div>
-        <div class="meta">
-          ${item.fecha || ""} · ${item.seccion || ""}
-          ${item.autor ? " · Por: " + item.autor : ""}
-        </div>
-        <a href="${item.url}" target="_blank">Ver nota</a>
-      `;
-      container.appendChild(div);
-    });
-  }
-
-  function populateFilters() {
-    const years = new Set();
-    const categories = new Set();
-
-    data.forEach(item => {
-      const y = getYear(item);
-      if (y) years.add(y);
-      if (item.seccion) categories.add(item.seccion);
-    });
-
-    const yearSelect = document.getElementById("year");
-    [...years].sort((a, b) => b - a).forEach(y => {
-      const opt = document.createElement("option");
-      opt.value = y;
-      opt.textContent = y;
-      yearSelect.appendChild(opt);
-    });
-
-    const catSelect = document.getElementById("category");
-    [...categories].sort().forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      catSelect.appendChild(opt);
-    });
-  }
-
-  document.getElementById("search").addEventListener("input", renderResults);
-  document.getElementById("year").addEventListener("change", renderResults);
-  document.getElementById("category").addEventListener("change", renderResults);
-  document.getElementById("order").addEventListener("change", renderResults);
-
-  fetch("/data")
-    .then(r => r.json())
-    .then(json => {
-      data = json;
-      populateFilters();
-      renderResults();
-    });
-
- <script>
-// ================= CHAT =================
-
 function ask() {
-  const q = document.getElementById("question").value;
+  const input = document.getElementById("question");
+  const q = input.value.trim();
   if (!q) return;
 
   const chat = document.getElementById("chat");
 
-  chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
+  chat.innerHTML += `<div class="message user"><b>Vos:</b> ${q}</div>`;
 
   fetch("/chat", {
     method: "POST",
@@ -248,12 +73,12 @@ function ask() {
   })
   .then(r => r.json())
   .then(res => {
-    chat.innerHTML += `<div class="message bot">${res.answer}</div>`;
-    document.getElementById("question").value = "";
+    chat.innerHTML += `<div class="message bot"><b>Bot:</b> ${res.answer}</div>`;
+    input.value = "";
   })
   .catch(err => {
-    chat.innerHTML += `<div class="message bot">Error consultando el servidor</div>`;
     console.error(err);
+    chat.innerHTML += `<div class="message bot">Error al consultar el servidor.</div>`;
   });
 }
 </script>
