@@ -165,8 +165,14 @@ def search():
         if year and not item.get("fecha","").endswith(year):
             continue
 
-        if category and category.lower() not in text:
-            continue
+   tipo = request.args.get("tipo")
+   seccion = request.args.get("seccion")
+
+        if tipo and item.get("tipo") != tipo:
+    continue
+
+        if seccion and item.get("seccion") != seccion:
+    continue
 
         results.append(item)
 
