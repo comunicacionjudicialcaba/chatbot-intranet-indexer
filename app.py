@@ -4,37 +4,39 @@ from datetime import datetime
 import numpy as np
 from openai import OpenAI
 
-client = OpenAI()
+# ------------------------
+# INIT
+# ------------------------
 
+client = OpenAI()
 app = Flask(__name__)
 
-
 DATA_FILE = "data.json"
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # ------------------------
-# LOAD DATA
+# LOAD DATA (buscador clásico)
 # ------------------------
 
 def load_data():
     if not os.path.exists(DATA_FILE):
         return []
-    with open(DATA_FILE,"r",encoding="utf-8") as f:
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 DATA = load_data()
 
 # ------------------------
-# LOAD EMBEDDINGS
+# LOAD EMBEDDINGS (RAG)
 # ------------------------
+
 print("🔄 Cargando embeddings...")
 
-embeddings = np.load("embeddings.npy")  # shape: (N, dim)
+embeddings = np.load("embeddings.npy")  # (N, dim)
 
 with open("meta.json", encoding="utf-8") as f:
     metadata = json.load(f)
 
-# Normalizamos para similitud coseno
+# normalizar para coseno
 norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
 embeddings_norm = embeddings / norms
 
@@ -45,18 +47,11 @@ print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 # ------------------------
 
 def semantic_search(query_embedding, top_k=6):
-    # normalizar query
     q = query_embedding / np.linalg.norm(query_embedding)
-
-    # coseno = producto punto (porque ya está normalizado)
     sims = np.dot(embeddings_norm, q)
-
-    # top K
     top_idx = np.argsort(sims)[-top_k:][::-1]
-
     results = [metadata[i] for i in top_idx]
     scores = [float(sims[i]) for i in top_idx]
-
     return results, scores
 
 # ------------------------
@@ -65,7 +60,7 @@ def semantic_search(query_embedding, top_k=6):
 
 def parse_date(fecha):
     try:
-        return datetime.strptime(fecha.strip(),"%d/%m/%Y")
+        return datetime.strptime(fecha.strip(), "%d/%m/%Y")
     except:
         return datetime.min
 
@@ -73,11 +68,11 @@ def safe(v):
     return v if v not in [None, "", "null"] else ""
 
 # ------------------------
-# BUILD CONTEXT
+# BUILD CONTEXT (RAG)
 # ------------------------
+
 def build_context(chunks):
     partes = []
-
     for c in chunks:
         partes.append(
             f"Título: {c.get('titulo','')}\n"
@@ -86,7 +81,6 @@ def build_context(chunks):
             f"Texto:\n{c.get('text','')}\n"
             f"URL: {c.get('url','')}\n"
         )
-
     return "\n---\n".join(partes)
 
 # ------------------------
@@ -102,20 +96,20 @@ def data():
     return jsonify(DATA)
 
 # ------------------------
-# SEARCH
+# SEARCH (clásico)
 # ------------------------
 
 @app.route("/search")
 def search():
-    q = request.args.get("q","").lower().strip()
-    year = request.args.get("year","").strip()
+    q = request.args.get("q", "").lower().strip()
+    year = request.args.get("year", "").strip()
 
     res = []
 
     for n in DATA:
-        titulo = safe(n.get("titulo","")).lower()
-        texto = safe(n.get("texto","")).lower()
-        fecha = safe(n.get("fecha",""))
+        titulo = safe(n.get("titulo", "")).lower()
+        texto = safe(n.get("texto", "")).lower()
+        fecha = safe(n.get("fecha", ""))
 
         fulltext = f"{titulo} {texto}"
 
@@ -127,12 +121,11 @@ def search():
 
         res.append(n)
 
-    res.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
-
+    res.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
     return jsonify(res[:50])
 
 # ------------------------
-# CHAT
+# CHAT (RAG real)
 # ------------------------
 
 @app.route("/chat", methods=["POST"])
@@ -140,8 +133,10 @@ def chat():
     data = request.get_json()
     question = data.get("message", "").strip()
 
+    print("🔎 Pregunta:", question)
+
     if not question:
-        return jsonify({"reply": "No recibí la pregunta."})
+        return jsonify({"answer": "No recibí la pregunta."})
 
     # 1. embedding de la pregunta
     q_emb = client.embeddings.create(
@@ -151,6 +146,10 @@ def chat():
 
     # 2. búsqueda semántica
     chunks, scores = semantic_search(np.array(q_emb), top_k=6)
+
+    print("📦 Chunks recuperados:", len(chunks))
+    for c, s in zip(chunks, scores):
+        print(f" - {c.get('titulo')} ({s:.3f})")
 
     # 3. contexto
     context = build_context(chunks)
@@ -185,15 +184,10 @@ Pregunta:
 
     return jsonify({"answer": answer})
 
-print("🔎 Pregunta:", question)
-print("📦 Chunks recuperados:", len(chunks))
-for c, s in zip(chunks, scores):
-    print(f" - {c.get('titulo')} ({s:.3f})")
-    
 # ------------------------
 # RUN
 # ------------------------
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT",8080))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
