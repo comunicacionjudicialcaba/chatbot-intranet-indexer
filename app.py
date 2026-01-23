@@ -185,7 +185,11 @@ Pregunta:
 
     return jsonify({"answer": answer})
 
-
+print("🔎 Pregunta:", question)
+print("📦 Chunks recuperados:", len(chunks))
+for c, s in zip(chunks, scores):
+    print(f" - {c.get('titulo')} ({s:.3f})")
+    
 # ------------------------
 # RUN
 # ------------------------
