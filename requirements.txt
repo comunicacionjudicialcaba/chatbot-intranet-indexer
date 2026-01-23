@@ -5,3 +5,4 @@ google-auth-httplib2
 flask
 numpy
 requests
+openai>=1.0.0
