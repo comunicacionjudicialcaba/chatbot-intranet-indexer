@@ -27,28 +27,22 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Ejecutar indexer
+      - name: Ejecutar indexer (Drive → data.json)
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
         run: |
           python -u indexer.py
-      
-      - name: Generar chunks
+
+      - name: Generar chunks (data.json → chunks.json)
         run: |
           python -u chunker.py
-          
-      - name: Generar embeddings
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python -u embedder.py     
-              
-          
+
       - name: Commit y push si hay cambios
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data.json chunks.json embeddings.npy meta.json
+          git pull --rebase origin main
+          git add data.json chunks.json
           git diff --cached --quiet || git commit -m "Auto update data.json + chunks.json"
           git push
