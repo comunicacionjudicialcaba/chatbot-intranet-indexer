@@ -131,7 +131,15 @@ def search():
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-    question = data.get("message", "").strip()
+    print("📥 JSON recibido:", data)
+
+    question = (
+    data.get("message")
+    or data.get("question")
+    or data.get("text")
+    or ""
+).strip()
+
 
     print("🔎 Pregunta:", question)
 
