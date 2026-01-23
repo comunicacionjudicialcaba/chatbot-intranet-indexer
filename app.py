@@ -3,6 +3,7 @@ import json, os
 from datetime import datetime
 import numpy as np
 from openai import OpenAI
+from collections import defaultdict
 
 # ------------------------
 # INIT
@@ -31,12 +32,11 @@ DATA = load_data()
 
 print("🔄 Cargando embeddings...")
 
-embeddings = np.load("embeddings.npy")  # (N, dim)
+embeddings = np.load("embeddings.npy")
 
 with open("meta.json", encoding="utf-8") as f:
     metadata = json.load(f)
 
-# normalizar para coseno
 norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
 embeddings_norm = embeddings / norms
 
@@ -46,7 +46,7 @@ print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 # SEMANTIC SEARCH
 # ------------------------
 
-def semantic_search(query_embedding, top_k=6):
+def semantic_search(query_embedding, top_k=15):
     q = query_embedding / np.linalg.norm(query_embedding)
     sims = np.dot(embeddings_norm, q)
     top_idx = np.argsort(sims)[-top_k:][::-1]
@@ -68,18 +68,36 @@ def safe(v):
     return v if v not in [None, "", "null"] else ""
 
 # ------------------------
-# BUILD CONTEXT (RAG)
+# GROUP CHUNKS BY DOCUMENT
 # ------------------------
 
-def build_context(chunks):
-    partes = []
+def group_chunks_by_url(chunks):
+    docs = defaultdict(list)
     for c in chunks:
+        docs[c["url"]].append(c)
+
+    grouped = []
+    for url, parts in docs.items():
+        text = "\n".join(p["text"] for p in parts)
+        base = parts[0].copy()
+        base["text"] = text
+        grouped.append(base)
+
+    return grouped
+
+# ------------------------
+# BUILD CONTEXT
+# ------------------------
+
+def build_context(docs):
+    partes = []
+    for d in docs:
         partes.append(
-            f"Título: {c.get('titulo','')}\n"
-            f"Fecha: {c.get('fecha','')}\n"
-            f"Tipo: {c.get('tipo','')}\n"
-            f"Texto:\n{c.get('text','')}\n"
-            f"URL: {c.get('url','')}\n"
+            f"Título: {d.get('titulo','')}\n"
+            f"Fecha: {d.get('fecha','')}\n"
+            f"Tipo: {d.get('tipo','')}\n"
+            f"Texto completo:\n{d.get('text','')}\n"
+            f"URL: {d.get('url','')}\n"
         )
     return "\n---\n".join(partes)
 
@@ -125,21 +143,19 @@ def search():
     return jsonify(res[:50])
 
 # ------------------------
-# CHAT (RAG real)
+# CHAT (RAG MEJORADO)
 # ------------------------
 
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-    print("📥 JSON recibido:", data)
 
     question = (
-    data.get("message")
-    or data.get("question")
-    or data.get("text")
-    or ""
-).strip()
-
+        data.get("message")
+        or data.get("question")
+        or data.get("text")
+        or ""
+    ).strip()
 
     print("🔎 Pregunta:", question)
 
@@ -152,25 +168,35 @@ def chat():
         input=question
     ).data[0].embedding
 
-    # 2. búsqueda semántica
-    chunks, scores = semantic_search(np.array(q_emb), top_k=6)
+    # 2. búsqueda semántica (más amplia)
+    chunks, scores = semantic_search(np.array(q_emb), top_k=15)
 
     print("📦 Chunks recuperados:", len(chunks))
     for c, s in zip(chunks, scores):
         print(f" - {c.get('titulo')} ({s:.3f})")
 
-    # 3. contexto
-    context = build_context(chunks)
+    # 3. agrupar por documento
+    docs = group_chunks_by_url(chunks)
 
-    # 4. prompt
+    # ordenar por fecha desc (por si hay varios plenarios)
+    docs.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
+
+    # usar solo el documento principal
+    context = build_context(docs[:1])
+
+    # 4. prompt orientado a listar temas
     system = (
-        "Sos un asistente interno del Poder Judicial de la CABA. "
-        "Respondé solo usando la información del contexto. "
-        "Si no hay datos suficientes, indicá que no hay información disponible. "
-        "Mencioná fechas y referencias cuando sea posible."
+        "Sos un asistente institucional del Poder Judicial de la CABA. "
+        "Cuando la pregunta sea sobre un plenario, debés enumerar "
+        "los temas tratados, proyectos aprobados, informes y decisiones, "
+        "incluyendo lo tratado en comisiones si figura en el texto. "
+        "Respondé en formato de lista clara y estructurada. "
+        "Usá exclusivamente la información del contexto."
     )
 
     user_prompt = f"""
+Respondé enumerando los temas tratados en el plenario.
+
 Contexto:
 {context}
 
@@ -180,7 +206,7 @@ Pregunta:
 
     # 5. llamada al modelo
     completion = client.chat.completions.create(
-        model="gpt-4.1-mini",
+        model="gpt-4.1-mini",  # o gpt-4o-mini si querés más barato
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user_prompt},
