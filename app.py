@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, render_template
 import json, os, requests
 from datetime import datetime
+import numpy as np
+from openai import OpenAI client = OpenAI()
 
 app = Flask(__name__)
 
@@ -8,7 +10,7 @@ DATA_FILE = "data.json"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # ------------------------
-# DATA
+# LOAD DATA
 # ------------------------
 
 def load_data():
@@ -19,6 +21,45 @@ def load_data():
 
 DATA = load_data()
 
+# ------------------------
+# LOAD EMBEDDINGS
+# ------------------------
+print("🔄 Cargando embeddings...")
+
+embeddings = np.load("embeddings.npy")  # shape: (N, dim)
+
+with open("meta.json", encoding="utf-8") as f:
+    metadata = json.load(f)
+
+# Normalizamos para similitud coseno
+norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+embeddings_norm = embeddings / norms
+
+print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
+
+# ------------------------
+# SEMANTIC SEARCH
+# ------------------------
+
+def semantic_search(query_embedding, top_k=6):
+    # normalizar query
+    q = query_embedding / np.linalg.norm(query_embedding)
+
+    # coseno = producto punto (porque ya está normalizado)
+    sims = np.dot(embeddings_norm, q)
+
+    # top K
+    top_idx = np.argsort(sims)[-top_k:][::-1]
+
+    results = [metadata[i] for i in top_idx]
+    scores = [float(sims[i]) for i in top_idx]
+
+    return results, scores
+
+# ------------------------
+# HELPERS
+# ------------------------
+
 def parse_date(fecha):
     try:
         return datetime.strptime(fecha.strip(),"%d/%m/%Y")
@@ -27,6 +68,23 @@ def parse_date(fecha):
 
 def safe(v):
     return v if v not in [None, "", "null"] else ""
+
+# ------------------------
+# BUILD CONTEXT
+# ------------------------
+    def build_context(chunks):
+    partes = []
+
+    for c in chunks:
+        partes.append(
+            f"Título: {c.get('titulo','')}\n"
+            f"Fecha: {c.get('fecha','')}\n"
+            f"Tipo: {c.get('tipo','')}\n"
+            f"Texto:\n{c.get('text','')}\n"
+            f"URL: {c.get('url','')}\n"
+        )
+
+    return "\n---\n".join(partes)
 
 # ------------------------
 # ROUTES
@@ -76,12 +134,64 @@ def search():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    payload = request.get_json(silent=True) or {}
-    user_msg = payload.get("question","").strip()
+    data = request.get_json()
+    question = data.get("message", "").strip()
 
-    if not user_msg:
-        return jsonify({"answer":"Escribí una pregunta."})
+    if not question:
+        return jsonify({"reply": "No recibí la pregunta."})
 
+    # 1. embedding de la pregunta
+    q_emb = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=question
+    ).data[0].embedding
+
+    # 2. búsqueda semántica
+    chunks, scores = semantic_search(np.array(q_emb), top_k=6)
+
+    # 3. contexto
+    context = build_context(chunks)
+
+    # 4. prompt
+    system = (
+        "Sos un asistente interno del Poder Judicial de la CABA. "
+        "Respondé solo usando la información del contexto. "
+        "Si no hay datos suficientes, indicá que no hay información disponible. "
+        "Mencioná fechas y referencias cuando sea posible."
+    )
+
+    user_prompt = f"""
+Contexto:
+{context}
+
+Pregunta:
+{question}
+"""
+
+    # 5. llamada al modelo
+    completion = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.2,
+    )
+
+    answer = completion.choices[0].message.content
+
+    return jsonify({"reply": answer})
+
+        
+# ------------------------
+# EMBEDDING DE LA PREGUNTA
+# ------------------------
+
+emb = client.embeddings.create(
+    model="text-embedding-3-small",
+    input=question
+).data[0].embedding
+    
     context_parts = []
 
     for n in sorted(DATA, key=lambda x: parse_date(x.get("fecha","")), reverse=True)[:80]:
