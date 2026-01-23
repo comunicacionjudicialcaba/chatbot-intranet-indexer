@@ -1,10 +1,13 @@
 from flask import Flask, jsonify, request, render_template
-import json, os, requests
+import json, os
 from datetime import datetime
 import numpy as np
-from openai import OpenAI client = OpenAI()
+from openai import OpenAI
+
+client = OpenAI()
 
 app = Flask(__name__)
+
 
 DATA_FILE = "data.json"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -72,7 +75,7 @@ def safe(v):
 # ------------------------
 # BUILD CONTEXT
 # ------------------------
-    def build_context(chunks):
+def build_context(chunks):
     partes = []
 
     for c in chunks:
@@ -182,61 +185,6 @@ Pregunta:
 
     return jsonify({"reply": answer})
 
-        
-# ------------------------
-# EMBEDDING DE LA PREGUNTA
-# ------------------------
-
-emb = client.embeddings.create(
-    model="text-embedding-3-small",
-    input=question
-).data[0].embedding
-    
-    context_parts = []
-
-    for n in sorted(DATA, key=lambda x: parse_date(x.get("fecha","")), reverse=True)[:80]:
-        context_parts.append(
-            f"Título: {safe(n.get('titulo'))}\n"
-            f"Fecha: {safe(n.get('fecha'))}\n"
-            f"URL: {safe(n.get('url'))}\n"
-            f"Texto: {safe(n.get('texto'))[:2000]}\n"
-        )
-
-    context = "\n---\n".join(context_parts)
-
-    prompt = f"""
-Usá únicamente la información de las notas para responder.
-Si hay más de una nota relevante, mencioná todas con su link.
-Si no hay datos suficientes, decilo claramente.
-
-{context}
-
-Pregunta: {user_msg}
-"""
-
-    r = requests.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type":"application/json"
-        },
-        json={
-            "model":"gpt-4.1-mini",
-            "messages":[
-                {"role":"system","content":"Asistente institucional de intranet"},
-                {"role":"user","content":prompt}
-            ],
-            "temperature":0.2
-        },
-        timeout=60
-    )
-
-    data = r.json()
-
-    if "choices" not in data:
-        return jsonify({"answer":"Error consultando modelo"})
-
-    return jsonify({"answer": data["choices"][0]["message"]["content"]})
 
 # ------------------------
 # RUN
