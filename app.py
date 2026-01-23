@@ -183,7 +183,7 @@ Pregunta:
 
     answer = completion.choices[0].message.content
 
-    return jsonify({"reply": answer})
+    return jsonify({"answer": answer})
 
 
 # ------------------------
