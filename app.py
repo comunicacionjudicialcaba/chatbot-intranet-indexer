@@ -78,12 +78,13 @@ def group_chunks_by_url(chunks):
 
     grouped = []
     for url, parts in docs.items():
-        text = "\n".join(p["text"] for p in parts)
+        text = "\n".join(p.get("texto", "") for p in parts)
         base = parts[0].copy()
-        base["text"] = text
+        base["texto"] = text
         grouped.append(base)
 
     return grouped
+
 
 # ------------------------
 # BUILD CONTEXT
@@ -96,10 +97,11 @@ def build_context(docs):
             f"Título: {d.get('titulo','')}\n"
             f"Fecha: {d.get('fecha','')}\n"
             f"Tipo: {d.get('tipo','')}\n"
-            f"Texto completo:\n{d.get('text','')}\n"
+            f"Texto completo:\n{d.get('texto','')}\n"
             f"URL: {d.get('url','')}\n"
         )
     return "\n---\n".join(partes)
+
 
 # ------------------------
 # ROUTES
