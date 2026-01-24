@@ -85,7 +85,6 @@ def group_chunks_by_url(chunks):
 
     return grouped
 
-
 # ------------------------
 # BUILD CONTEXT
 # ------------------------
@@ -101,7 +100,6 @@ def build_context(docs):
             f"URL: {d.get('url','')}\n"
         )
     return "\n---\n".join(partes)
-
 
 # ------------------------
 # ROUTES
@@ -145,7 +143,7 @@ def search():
     return jsonify(res[:50])
 
 # ------------------------
-# CHAT (RAG MEJORADO)
+# CHAT (RAG)
 # ------------------------
 
 @app.route("/chat", methods=["POST"])
@@ -170,42 +168,37 @@ def chat():
         input=question
     ).data[0].embedding
 
-    # 2. búsqueda semántica (más amplia)
+    # 2. búsqueda semántica
     chunks, scores = semantic_search(np.array(q_emb), top_k=15)
-    
-    # 3. filtrar solo chunks con texto sustancial
+
+    # filtrar chunks con texto real
     chunks = [c for c in chunks if len(c.get("texto","")) > 300]
 
+    print("📦 Chunks útiles:", len(chunks))
 
-    print("📦 Chunks recuperados:", len(chunks))
-    for c, s in zip(chunks, scores):
-        print(f" - {c.get('titulo')} ({s:.3f})")
+    if not chunks:
+        return jsonify({"answer": "No encontré información relevante."})
 
-    # 4. agrupar por documento
+    # 3. agrupar por documento
     docs = group_chunks_by_url(chunks)
 
-    # ordenar por fecha desc y quedarnos con el más reciente
+    # ordenar por fecha desc (último plenario)
     docs.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
-    main_doc = docs[0:1]
+    main_doc = docs[:1]
 
-    # 5. ordenar por fecha desc (por si hay varios plenarios)
-    docs.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
-
-    # 6. usar solo el documento principal
+    # 4. contexto
     context = build_context(main_doc)
 
-    # 7. prompt orientado a listar temas
+    # 5. prompt de extracción
     system = (
-        system = (
-    "Sos un asistente institucional del Poder Judicial de la CABA. "
-    "Cuando el contexto sea un plenario, debés extraer y enumerar "
-    "todas las decisiones, proyectos aprobados, informes presentados "
-    "y temas tratados. No resumas en palabras generales. "
-    "Respondé en forma de lista detallada."
-)
+        "Sos un asistente institucional del Poder Judicial de la CABA. "
+        "Cuando el contexto sea un plenario, debés extraer y enumerar "
+        "todas las decisiones, proyectos aprobados, informes y temas tratados. "
+        "No resumas en palabras generales. Respondé en forma de lista detallada."
+    )
 
     user_prompt = f"""
-    A partir del texto del plenario, enumerá todos los temas y decisiones tratadas.
+A partir del texto del plenario, enumerá todos los temas y decisiones tratadas.
 
 Contexto:
 {context}
@@ -214,10 +207,8 @@ Pregunta:
 {question}
 """
 
-
-    # 5. llamada al modelo
     completion = client.chat.completions.create(
-        model="gpt-4.1-mini",  # o gpt-4o-mini si querés más barato
+        model="gpt-4.1-mini",  # o gpt-4o-mini
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user_prompt},
@@ -226,6 +217,8 @@ Pregunta:
     )
 
     answer = completion.choices[0].message.content
+
+    print("✅ RESPUESTA:", answer[:200])
 
     return jsonify({"answer": answer})
 
