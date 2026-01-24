@@ -172,32 +172,40 @@ def chat():
 
     # 2. búsqueda semántica (más amplia)
     chunks, scores = semantic_search(np.array(q_emb), top_k=15)
+    
+    # 3. filtrar solo chunks con texto sustancial
+    chunks = [c for c in chunks if len(c.get("texto","")) > 300]
+
 
     print("📦 Chunks recuperados:", len(chunks))
     for c, s in zip(chunks, scores):
         print(f" - {c.get('titulo')} ({s:.3f})")
 
-    # 3. agrupar por documento
+    # 4. agrupar por documento
     docs = group_chunks_by_url(chunks)
 
-    # ordenar por fecha desc (por si hay varios plenarios)
+    # ordenar por fecha desc y quedarnos con el más reciente
+    docs.sort(key=lambda x: parse_date(x.get("fecha","")), reverse=True)
+    main_doc = docs[0:1]
+
+    # 5. ordenar por fecha desc (por si hay varios plenarios)
     docs.sort(key=lambda x: parse_date(x.get("fecha", "")), reverse=True)
 
-    # usar solo el documento principal
-    context = build_context(docs[:1])
+    # 6. usar solo el documento principal
+    context = build_context(main_doc)
 
-    # 4. prompt orientado a listar temas
+    # 7. prompt orientado a listar temas
     system = (
-        "Sos un asistente institucional del Poder Judicial de la CABA. "
-        "Cuando la pregunta sea sobre un plenario, debés enumerar "
-        "los temas tratados, proyectos aprobados, informes y decisiones, "
-        "incluyendo lo tratado en comisiones si figura en el texto. "
-        "Respondé en formato de lista clara y estructurada. "
-        "Usá exclusivamente la información del contexto."
-    )
+        system = (
+    "Sos un asistente institucional del Poder Judicial de la CABA. "
+    "Cuando el contexto sea un plenario, debés extraer y enumerar "
+    "todas las decisiones, proyectos aprobados, informes presentados "
+    "y temas tratados. No resumas en palabras generales. "
+    "Respondé en forma de lista detallada."
+)
 
     user_prompt = f"""
-Respondé enumerando los temas tratados en el plenario.
+    A partir del texto del plenario, enumerá todos los temas y decisiones tratadas.
 
 Contexto:
 {context}
@@ -205,6 +213,7 @@ Contexto:
 Pregunta:
 {question}
 """
+
 
     # 5. llamada al modelo
     completion = client.chat.completions.create(
