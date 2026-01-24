@@ -1,102 +1,63 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Buscador + Chat Intranet</title>
+  <meta charset="UTF-8" />
+  <title>Chatbot Intranet</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
+    .user { color: #006; margin-top: 10px; }
+    .bot { color: #060; margin-top: 10px; }
+  </style>
+</head>
+<body>
 
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-input, select, button { padding: 6px; margin: 4px; }
-.result { border-bottom: 1px solid #ddd; padding: 10px 0; }
-.result a { color: #0066cc; display:block; }
-.copete { color:#555; font-size:0.9em; }
-.message { margin: 6px 0; }
-.user { font-weight: bold; }
-.bot { background:#f4f4f4; padding:6px; }
-</style>
+<h2>💬 Chat Intranet</h2>
+
+<div id="chat"></div>
+
+<input id="msg" type="text" style="width:80%" placeholder="Escribí tu pregunta..." />
+<button onclick="send()">Enviar</button>
 
 <script>
-// ================= BUSCADOR =================
-function search(){
-  const q = document.getElementById("searchq").value.trim();
-  const year = document.getElementById("year").value;
+const chat = document.getElementById("chat");
+const input = document.getElementById("msg");
 
-  fetch(`/search?q=${encodeURIComponent(q)}&year=${year}`)
-    .then(r => r.json())
-    .then(data => {
-      const box = document.getElementById("results");
-      box.innerHTML = "";
-
-      if (!data.length){
-        box.innerHTML = "<p><strong>La búsqueda no arrojó resultados.</strong></p>";
-        return;
-      }
-
-      data.forEach(n => {
-        const copete = n.texto
-          ? n.texto.split(".").slice(0,2).join(".") + "."
-          : "";
-
-        box.innerHTML += `
-          <div class="result">
-            <strong>${n.titulo}</strong><br>
-            <small>${n.fecha}</small>
-            <div class="copete">${copete}</div>
-            <a href="${n.url}" target="_blank">Ver nota</a>
-          </div>
-        `;
-      });
-    });
+function add(text, cls){
+  const d = document.createElement("div");
+  d.className = cls;
+  d.innerText = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
 }
 
-// ================= CHAT =================
-function ask(){
-  const q = document.getElementById("question").value.trim();
-  if (!q) return;
+function send(){
+  const text = input.value.trim();
+  if(!text) return;
 
-  const chat = document.getElementById("chat");
-  chat.innerHTML += `<div class="message user">Vos: ${q}</div>`;
+  add("👤 " + text, "user");
+  input.value = "";
 
   fetch("/chat",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ question: q })
+    body: JSON.stringify({ question: text })
   })
-  .then(r=>r.json())
-  .then(res=>{
-    chat.innerHTML += `<div class="message bot">${res.answer}</div>`;
-    document.getElementById("question").value="";
+  .then(r => r.json())
+  .then(data => {
+    console.log("RESPUESTA BACKEND:", data);
+    add("🤖 " + (data.answer || "Sin respuesta"), "bot");
+  })
+  .catch(err => {
+    console.error(err);
+    add("❌ Error al consultar el servidor", "bot");
   });
 }
+
+input.addEventListener("keydown", e=>{
+  if(e.key === "Enter") send();
+});
 </script>
-</head>
-
-<body>
-
-<h2>🔍 Buscador de notas</h2>
-
-<input id="searchq" placeholder="Buscar texto...">
-
-<select id="year">
-  <option value="">Año</option>
-  <option>2026</option>
-  <option>2025</option>
-  <option>2024</option>
-  <option>2023</option>
-</select>
-
-<button onclick="search()">Buscar</button>
-
-<div id="results"></div>
-
-<hr>
-
-<h2>💬 Chatbot</h2>
-
-<input id="question" placeholder="Escribí tu pregunta..." style="width:70%">
-<button onclick="ask()">Enviar</button>
-
-<div id="chat"></div>
 
 </body>
 </html>
