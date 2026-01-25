@@ -1,0 +1,38 @@
+name: Generar chunks desde data.json
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  chunk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt || true
+
+      - name: Ejecutar chunker
+        run: |
+          python chunker.py
+
+      - name: Commit y push de chunks.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add chunks.json
+          git commit -m "Actualizar chunks.json" || echo "No hay cambios para commitear"
+          git push
