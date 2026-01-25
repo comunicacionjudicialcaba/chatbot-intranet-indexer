@@ -35,6 +35,41 @@ sheets_service = build("sheets", "v4", credentials=creds)
 docs_service = build("docs", "v1", credentials=creds)
 
 # =========================
+# FECHA NORMALIZADA
+# =========================
+
+MESES = {
+    "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+    "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
+}
+
+def normalizar_fecha(fecha):
+    if not fecha:
+        return None, None, None
+
+    f = fecha.strip().lower()
+
+    # formato sheet: 17/12/2025
+    try:
+        d, m, y = f.split("/")
+        return f"{y}-{m.zfill(2)}-{d.zfill(2)}", int(y), int(m)
+    except:
+        pass
+
+    # formato doc: miércoles 17 de diciembre de 2025
+    for mes_txt, mes_num in MESES.items():
+        if mes_txt in f:
+            try:
+                partes = f.split()
+                dia = next(p for p in partes if p.isdigit())
+                anio = int(partes[-1])
+                return f"{anio}-{str(mes_num).zfill(2)}-{dia.zfill(2)}", anio, mes_num
+            except:
+                pass
+
+    return None, None, None
+
+# =========================
 # DRIVE LIST
 # =========================
 
@@ -66,7 +101,7 @@ def parse_doc(doc_id):
     data = []
     current = None
 
-    fecha_re = re.compile(r"^(Lunes|Martes|Miércoles|Jueves|Viernes)\s+\d{1,2}")
+    fecha_re = re.compile(r"^(lunes|martes|miércoles|jueves|viernes)\s+\d{1,2}", re.I)
 
     for line in lines:
         if fecha_re.match(line):
@@ -145,7 +180,7 @@ def parse_sheet(sheet_id):
     return data
 
 # =========================
-# MERGE BY URL
+# MERGE BY URL + FECHA NORMALIZADA
 # =========================
 
 def merge_by_url(records):
@@ -174,6 +209,13 @@ def merge_by_url(records):
                 base["texto"] += it.get("texto", "")
 
         base["url"] = url
+
+        # 🔥 normalizar fecha
+        iso, anio, mes = normalizar_fecha(base.get("fecha"))
+        base["fecha_iso"] = iso
+        base["anio"] = anio
+        base["mes"] = mes
+
         merged.append(base)
 
     merged.extend(no_url)
