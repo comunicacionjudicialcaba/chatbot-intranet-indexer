@@ -101,9 +101,16 @@ def parse_doc(doc_id):
     data = []
     current = None
 
-    fecha_re = re.compile(r"^(lunes|martes|miércoles|jueves|viernes)\s+\d{1,2}", re.I)
+    fecha_re = re.compile(
+        r"^(lunes|martes|miércoles|miercoles|jueves|viernes)?[, ]*\s*\d{1,2}\s+de\s+"
+        r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        r"\s+de\s+\d{4}",
+        re.I
+    )
 
     for line in lines:
+
+        # inicio de nueva nota
         if fecha_re.match(line):
             if current:
                 data.append(current)
@@ -120,8 +127,9 @@ def parse_doc(doc_id):
         if not current:
             continue
 
-        if line.startswith("http"):
-            current["url"] = line
+        # detectar URL en cualquier parte
+        if "http" in line and "intranet.jusbaires.gob.ar" in line:
+            current["url"] = line.strip()
             continue
 
         if not current["titulo"]:
@@ -134,6 +142,7 @@ def parse_doc(doc_id):
         data.append(current)
 
     return data
+
 
 # =========================
 # PARSE SHEET
@@ -188,7 +197,7 @@ def merge_by_url(records):
     no_url = []
 
     for r in records:
-        url = r.get("url", "").strip()
+        url = (r.get("url") or "").strip()
         if url:
             by_url.setdefault(url, []).append(r)
         else:
@@ -197,29 +206,24 @@ def merge_by_url(records):
     merged = []
 
     for url, items in by_url.items():
-        base = {}
+        base = {"url": url, "texto": ""}
 
         for it in items:
             if it.get("tipo") == "sheet":
-                base.update(it)
+                for k, v in it.items():
+                    if k != "texto":
+                        base[k] = v
             else:
+                base["texto"] += it.get("texto", "")
                 base.setdefault("fecha", it.get("fecha"))
                 base.setdefault("titulo", it.get("titulo"))
-                base.setdefault("texto", "")
-                base["texto"] += it.get("texto", "")
-
-        base["url"] = url
-
-        # 🔥 normalizar fecha
-        iso, anio, mes = normalizar_fecha(base.get("fecha"))
-        base["fecha_iso"] = iso
-        base["anio"] = anio
-        base["mes"] = mes
+                base.setdefault("tipo", it.get("tipo"))
 
         merged.append(base)
 
     merged.extend(no_url)
     return merged
+
 
 # =========================
 # MAIN
