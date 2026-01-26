@@ -26,7 +26,7 @@ const input = document.getElementById("msg");
 function add(text, cls){
   const d = document.createElement("div");
   d.className = cls;
-  d.innerText = text;
+  d.innerHTML = text;   // 👈 permite HTML (links clickeables)
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
 }
