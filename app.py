@@ -6,18 +6,18 @@ import numpy as np
 from openai import OpenAI
 from collections import defaultdict
 
-# ======================
+# ------------------------
 # INIT
-# ======================
+# ------------------------
 
 client = OpenAI()
 app = Flask(__name__)
 
 DATA_FILE = "data.json"
 
-# ======================
+# ------------------------
 # LOAD DATA
-# ======================
+# ------------------------
 
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -27,13 +27,14 @@ def load_data():
 
 DATA = load_data()
 
-# ======================
-# LOAD EMBEDDINGS (TEMÁTICO)
-# ======================
+# ------------------------
+# LOAD EMBEDDINGS (RAG)
+# ------------------------
 
 print("🔄 Cargando embeddings...")
 
 embeddings = np.load("embeddings.npy")
+
 with open("meta.json", "r", encoding="utf-8") as f:
     metadata = json.load(f)
 
@@ -42,14 +43,13 @@ embeddings_norm = embeddings / norms
 
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
-# ======================
-# HELPERS FECHA
-# ======================
+# ------------------------
+# HELPERS
+# ------------------------
 
 MESES = {
-    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4,
-    "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
-    "septiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12
+    "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+    "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
 }
 
 def parse_date_iso(fecha_iso):
@@ -58,9 +58,35 @@ def parse_date_iso(fecha_iso):
     except:
         return None
 
-# ======================
+def detectar_mes(texto):
+    t = texto.lower()
+    for k, v in MESES.items():
+        if k in t:
+            return v
+    return None
+
+def detectar_anio(texto):
+    for y in range(2020, 2031):
+        if str(y) in texto:
+            return y
+    return None
+
+# ------------------------
+# DETECCIÓN DE PLENARIO (DATA)
+# ------------------------
+
+def es_plenario(item):
+    t = (item.get("titulo","") + " " + item.get("texto","")).lower()
+    return (
+        "plenario" in t
+        and "convocatoria" not in t
+        and "suspensión" not in t
+        and "suspension" not in t
+    )
+
+# ------------------------
 # SEMANTIC SEARCH (TEMAS)
-# ======================
+# ------------------------
 
 def semantic_search(query_embedding, top_k=40):
     q = query_embedding / np.linalg.norm(query_embedding)
@@ -70,27 +96,9 @@ def semantic_search(query_embedding, top_k=40):
     scores = [float(sims[i]) for i in top_idx]
     return results, scores
 
-# ======================
-# KEYWORD BOOST (SOLO TEMAS)
-# ======================
-
-KEYWORDS = [
-    "frecuencia judicial", "mia", "lenguaje claro", "inteligencia artificial",
-    "uma", "obra social", "salud", "paritaria", "acuerdo salarial",
-    "fachada", "edificio", "infraestructura"
-]
-
-def keyword_score(doc, q_lower):
-    score = 0
-    texto = (doc.get("titulo","") + " " + doc.get("texto","")).lower()
-    for kw in KEYWORDS:
-        if kw in q_lower and kw in texto:
-            score += 2
-    return score
-
-# ======================
-# GROUP BY URL
-# ======================
+# ------------------------
+# AGRUPAR POR URL (RAG)
+# ------------------------
 
 def group_chunks_by_url(chunks):
     docs = defaultdict(list)
@@ -99,15 +107,16 @@ def group_chunks_by_url(chunks):
 
     grouped = []
     for url, parts in docs.items():
+        text = "\n".join(p.get("texto", "") for p in parts)
         base = parts[0].copy()
-        base["texto"] = "\n".join(p.get("texto","") for p in parts)
+        base["texto"] = text
         grouped.append(base)
 
     return grouped
 
-# ======================
-# BUILD CONTEXT
-# ======================
+# ------------------------
+# CONTEXTO MULTI DOC
+# ------------------------
 
 def build_context(docs):
     partes = []
@@ -120,141 +129,158 @@ def build_context(docs):
         )
     return "\n---\n".join(partes)
 
-# ======================
-# SYSTEM PROMPT
-# ======================
+# ------------------------
+# PROMPT
+# ------------------------
 
 SYSTEM_PROMPT = """
 Sos un asistente del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
-Respondés únicamente con la información incluida en el CONTEXTO provisto.
+Respondés únicamente con la información incluida en los textos provistos.
 No uses conocimiento externo ni hagas suposiciones.
 
-REGLAS OBLIGATORIAS:
-- No inventes información.
-- Si un dato no aparece, decí: "No se menciona en los textos".
-- No infieras solo por títulos: usá principalmente el texto.
-
-SI LA PREGUNTA ES SOBRE UN PLENARIO:
-- Respondé usando UN solo documento.
-- Enumerá todos los puntos tratados.
-- Usá lista numerada.
+REGLAS:
+- No inventes datos.
+- Si algo no aparece en los textos, decí: "No se menciona en los textos".
+- No infieras por el título: usá principalmente el contenido del texto.
 
 SI LA PREGUNTA ES TEMÁTICA:
-- Podés usar VARIOS documentos.
+- Podés usar varios textos.
 - Listá las notas relevantes.
-- Para cada nota indicá:
+- Para cada una:
   • Título
   • Breve descripción
   • Link clickeable:
     <a href="URL" target="_blank">Ver nota</a>
 
+SI LA PREGUNTA ES SOBRE UN EVENTO:
+- Usá un solo texto.
+- Enumerá todos los puntos tratados.
+
 FORMATO:
-- Usá listas cuando corresponda.
-- No menciones documentos, chunks ni contexto.
+- Listas numeradas si hay varios puntos.
+- Links siempre en HTML.
 """
 
-# ======================
+# ------------------------
 # ROUTES
-# ======================
+# ------------------------
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# ======================
-# CHAT
-# ======================
-
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
+
     question = (data.get("question") or "").strip()
     q_lower = question.lower()
+
+    print("🔎 Pregunta:", question)
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
-    # ======================
-    # DETECTAR MODO PLENARIO
-    # ======================
+    # =========================================================
+    # 🟣 MODO PLENARIO (SOLO DATA)
+    # =========================================================
 
-    es_plenario = "plenario" in q_lower or "sesión" in q_lower
+    if "plenario" in q_lower:
 
-    mes_pedido = None
-    for k, v in MESES.items():
-        if k in q_lower:
-            mes_pedido = v
+        plenarios = [d for d in DATA if es_plenario(d)]
 
-    anio_pedido = None
-    for y in ["2023", "2024", "2025", "2026"]:
-        if y in q_lower:
-            anio_pedido = int(y)
-
-    # ======================
-    # 🏛 MODO PLENARIO (DATA)
-    # ======================
-
-    if es_plenario:
-        plenarios = [
-            d for d in DATA
-            if "plenario" in (d.get("titulo","")+d.get("texto","")).lower()
-        ]
+        mes_pedido = detectar_mes(q_lower)
+        anio_pedido = detectar_anio(q_lower)
 
         if anio_pedido:
-            plenarios = [d for d in plenarios if d.get("anio") == anio_pedido]
+            plenarios = [p for p in plenarios if p.get("anio") == anio_pedido]
 
         if mes_pedido:
-            plenarios = [d for d in plenarios if d.get("mes") == mes_pedido]
+            plenarios = [p for p in plenarios if p.get("mes") == mes_pedido]
 
-        if "cuántos" in q_lower or "cuantos" in q_lower:
-            return jsonify({
-                "answer": f"En el período solicitado se registran {len(plenarios)} plenarios."
-            })
+        plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
-        if "último" in q_lower or "reciente" in q_lower:
-            plenarios = sorted(plenarios, key=lambda x: x.get("fecha_iso",""))
-            plenarios = plenarios[-1:] if plenarios else []
+        # ---- Conteo ----
+        if "cuantos" in q_lower:
+            if anio_pedido:
+                return jsonify({"answer": f"Durante {anio_pedido} se realizaron {len(plenarios)} plenarios."})
+            return jsonify({"answer": f"Se registran {len(plenarios)} plenarios en los textos disponibles."})
+
+        # ---- Último ----
+        if "último" in q_lower or "ultimo" in q_lower:
+            plenarios = plenarios[:1]
 
         if not plenarios:
-            return jsonify({"answer": "No encontré información del período solicitado."})
+            return jsonify({"answer": "No encontré plenarios para el período solicitado."})
 
         doc = plenarios[0]
-        context = build_context([doc])
 
-    # ======================
-    # 🔍 MODO TEMÁTICO (RAG)
-    # ======================
+        prompt = f"""
+TEXTO:
+{doc.get("texto","")}
 
-    else:
-        q_emb = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=question
-        ).data[0].embedding
+PREGUNTA:
+{question}
+"""
 
-        chunks, scores = semantic_search(np.array(q_emb), top_k=40)
-        chunks = [c for c in chunks if len(c.get("texto","")) > 200]
+        completion = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+        )
 
-        # keyword boost
-        scored = []
-        for c, s in zip(chunks, scores):
-            s += keyword_score(c, q_lower)
-            scored.append((c, s))
+        answer = completion.choices[0].message.content
+        return jsonify({"answer": answer})
 
-        scored.sort(key=lambda x: x[1], reverse=True)
-        chunks = [c for c, _ in scored[:25]]
+    # =========================================================
+    # 🟢 MODO TEMÁTICO (RAG)
+    # =========================================================
 
-        docs = group_chunks_by_url(chunks)
-        context = build_context(docs[:5])
+    q_emb = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=question
+    ).data[0].embedding
 
-    # ======================
-    # LLM
-    # ======================
+    chunks, scores = semantic_search(np.array(q_emb), top_k=50)
+
+    # boost semántico por keywords
+    KEYWORDS = ["frecuencia judicial", "mia", "lenguaje claro", "salud", "uma", "obra social", "paritaria", "fachada"]
+
+    def keyword_score(c):
+        t = (c.get("titulo","") + " " + c.get("texto","")).lower()
+        return sum(2 for k in KEYWORDS if k in t and k in q_lower)
+
+    chunks = sorted(
+        chunks,
+        key=lambda c: keyword_score(c),
+        reverse=True
+    )
+
+    chunks = [c for c in chunks if len(c.get("texto","")) > 300]
+
+    docs = group_chunks_by_url(chunks)[:6]
+
+    if not docs:
+        return jsonify({"answer": "No encontré información relacionada con tu consulta."})
+
+    context = build_context(docs)
+
+    prompt = f"""
+TEXTOS:
+{context}
+
+PREGUNTA:
+{question}
+"""
 
     completion = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"CONTEXTO:\n{context}\n\nPREGUNTA:\n{question}"}
+            {"role": "user", "content": prompt},
         ],
         temperature=0.2,
     )
@@ -262,9 +288,9 @@ def chat():
     answer = completion.choices[0].message.content
     return jsonify({"answer": answer})
 
-# ======================
+# ------------------------
 # RUN
-# ======================
+# ------------------------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
