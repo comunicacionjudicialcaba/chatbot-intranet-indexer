@@ -16,7 +16,7 @@ app = Flask(__name__)
 DATA_FILE = "data.json"
 
 # ------------------------
-# LOAD DATA (solo debug / API)
+# LOAD DATA (buscador clásico)
 # ------------------------
 
 def load_data():
@@ -65,6 +65,11 @@ def parse_date_iso(fecha_iso):
     except:
         return None
 
+MESES = {
+    "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+    "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
+}
+
 # ------------------------
 # GROUP CHUNKS BY DOCUMENT
 # ------------------------
@@ -91,53 +96,24 @@ def build_context(docs):
     partes = []
     for d in docs:
         partes.append(
-            f"Título: {d.get('titulo','')}\n"
-            f"Fecha: {d.get('fecha','')}\n"
-            f"Texto:\n{d.get('texto','')}\n"
-            f"URL: {d.get('url','')}\n"
+            f"TÍTULO: {d.get('titulo','')}\n"
+            f"FECHA: {d.get('fecha','')}\n"
+            f"TEXTO:\n{d.get('texto','')}\n"
+            f"LINK: {d.get('url','')}\n"
         )
     return "\n---\n".join(partes)
 
 # ------------------------
-# SYSTEM PROMPT
+# RECALL TEMÁTICO DURO
 # ------------------------
 
-BASE_SYSTEM_PROMPT = """
-Sos un asistente del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
-Respondés únicamente con la información incluida en el CONTEXTO provisto.
-No uses conocimiento externo ni hagas suposiciones.
-
-REGLAS OBLIGATORIAS:
-- No inventes información que no esté explícitamente en el texto.
-- Si un dato no aparece en el texto, decí: "No se menciona en el texto".
-- No mezcles información de documentos distintos.
-- No infieras temas a partir de títulos: usá solo el contenido del texto.
-
-CUANDO LA PREGUNTA SEA SOBRE UN PLENARIO O REUNIÓN:
-- Enumerá todos los puntos tratados en forma de lista numerada.
-- Incluí proyectos aprobados, reformas, protocolos, convenios, informes de consejeros,
-  decisiones de comisiones y resoluciones.
-- No limites la respuesta a un solo tema si el texto contiene varios.
-
-CUANDO LA PREGUNTA SEA TEMÁTICA (por ejemplo: Frecuencia Judicial, IA, Lenguaje Claro):
-- Explicá lo que dicen los textos sobre ese tema.
-- Podés usar más de un documento si el contexto incluye varios.
-- Podés unificar información de distintos párrafos del mismo documento.
-
-FORMATO:
-- Usá listas numeradas si hay varios puntos.
-- No menciones "documentos", "chunks" ni "contexto".
-- No expliques cómo funciona el sistema.
-"""
-
-LINKS_EXTRA_PROMPT = """
-CUANDO EL USUARIO SOLICITE LINKS, FUENTES O ENLACES:
-- Al final de la respuesta agregá una sección titulada: "Notas relacionadas".
-- Listá cada nota con el formato:
-  - Título — URL
-- Usá la URL completa tal como aparece en el texto para que sea clickeable.
-- No inventes enlaces ni títulos.
-"""
+def recall_por_texto(palabras, metadata):
+    results = []
+    for c in metadata:
+        blob = (c.get("titulo","") + " " + c.get("texto","")).lower()
+        if any(p in blob for p in palabras):
+            results.append(c)
+    return results
 
 # ------------------------
 # ROUTES
@@ -172,59 +148,63 @@ def chat():
 
     q_lower = question.lower()
 
-    # detectar pedido de links
-    pide_links = any(x in q_lower for x in [
-        "link", "links", "enlace", "enlaces", "url", "fuente", "fuentes"
-    ])
-
     # ------------------------
-    # 1. EMBEDDING
+    # DETECCIÓN DE INTENCIÓN
     # ------------------------
 
-    q_emb = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=question
-    ).data[0].embedding
+    es_plenario = "plenario" in q_lower
+    es_frecuencia = (
+        "frecuencia judicial" in q_lower
+        or "podcast" in q_lower
+        or "episodio" in q_lower
+        or "episodios" in q_lower
+    )
 
-    # ------------------------
-    # 2. RETRIEVAL
-    # ------------------------
-
-    chunks, scores = semantic_search(np.array(q_emb), top_k=60)
-
-    # solo chunks con texto real
-    chunks = [c for c in chunks if len(c.get("texto", "")) > 200]
-
-    # filtrar convocatorias si pregunta por plenario
-    if "plenario" in q_lower:
-        def es_cronica(t):
-            t = (t or "").lower()
-            return not (
-                t.startswith("convocatoria")
-                or t.startswith("suspensión")
-                or t.startswith("suspension")
-            )
-        chunks = [c for c in chunks if es_cronica(c.get("titulo", ""))]
-
-    # ------------------------
-    # 3. FILTRO POR MES / ÚLTIMO
-    # ------------------------
-
-    MESES = {
-        "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
-        "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
-    }
-
+    # detectar mes
     mes_pedido = None
     for k, v in MESES.items():
         if k in q_lower:
             mes_pedido = v
 
+    pedir_ultimo = "último" in q_lower or "ultimo" in q_lower or "reciente" in q_lower
+
+    # ------------------------
+    # 1. RETRIEVAL
+    # ------------------------
+
+    # ---- MODO PODCAST / SERIE ----
+    if es_frecuencia:
+        print("🎧 Modo Frecuencia Judicial (recall duro)")
+        chunks = recall_por_texto(["frecuencia judicial"], metadata)
+
+    # ---- MODO PLENARIO / GENERAL ----
+    else:
+        q_emb = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=question
+        ).data[0].embedding
+
+        chunks, scores = semantic_search(np.array(q_emb), top_k=60)
+
+        # filtrar convocatorias
+        if es_plenario:
+            def es_cronica(t):
+                t = t.lower()
+                return not (
+                    t.startswith("convocatoria")
+                    or t.startswith("suspensión")
+                    or t.startswith("suspension")
+                )
+            chunks = [c for c in chunks if es_cronica(c.get("titulo",""))]
+
+    # ------------------------
+    # 2. FILTROS TEMPORALES
+    # ------------------------
+
     if mes_pedido:
         chunks = [c for c in chunks if c.get("mes") == mes_pedido]
 
-    # último / más reciente
-    if "último" in q_lower or "reciente" in q_lower:
+    if pedir_ultimo and chunks:
         fechas = [parse_date_iso(c.get("fecha_iso")) for c in chunks if c.get("fecha_iso")]
         if fechas:
             max_fecha = max(fechas)
@@ -233,55 +213,78 @@ def chat():
                 if parse_date_iso(c.get("fecha_iso")) == max_fecha
             ]
 
-    print("📦 Chunks finales:", len(chunks))
-    for c in chunks[:5]:
-        print(" -", c.get("titulo"), c.get("fecha_iso"))
-
     if not chunks:
-        return jsonify({"answer": "No encontré información del período solicitado."})
+        return jsonify({"answer": "No encontré información para esa consulta."})
 
     # ------------------------
-    # 4. AGRUPAR POR DOCUMENTO
+    # 3. AGRUPAR POR DOCUMENTO
     # ------------------------
 
     docs = group_chunks_by_url(chunks)
 
-    # modo plenario → 1 doc
-    if "plenario" in q_lower or "reunión" in q_lower or "reunion" in q_lower:
+    # modo puntual → 1 doc
+    if es_plenario and (mes_pedido or pedir_ultimo):
         docs = docs[:1]
+
+    # modo temático → varios docs
     else:
-        # modo temático → varios docs (máx 5)
-        docs = docs[:5]
+        docs = docs[:15]
 
     # ------------------------
-    # 5. CONTEXTO
+    # 4. CONTEXTO
     # ------------------------
 
     context = build_context(docs)
 
     # ------------------------
-    # 6. PROMPT
+    # 5. PROMPT
     # ------------------------
 
-    system_prompt = BASE_SYSTEM_PROMPT
-    if pide_links:
-        system_prompt += LINKS_EXTRA_PROMPT
+    SYSTEM_PROMPT = """
+Sos un asistente del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
+Respondés únicamente con la información incluida en el CONTEXTO provisto.
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": f"CONTEXTO:\n{context}\n\nPREGUNTA:\n{question}"
-        }
-    ]
+REGLAS:
+- No inventes información que no esté en el texto.
+- Si algo no se menciona, decí: "No se menciona en las notas".
+- No mezcles información de documentos distintos.
+- Usá solo el TEXTO, no infieras por el título.
 
-    # ------------------------
-    # 7. CHAT COMPLETION
-    # ------------------------
+PLENARIOS:
+- Enumerá TODOS los puntos tratados.
+- Incluí proyectos, protocolos, reformas, convenios, informes y comisiones.
+
+SERIES / PODCAST / LISTADOS:
+- Enumerá TODOS los ítems del contexto.
+- Para cada uno indicá:
+  • Título
+  • Tema principal
+  • Fecha si figura
+  • Link
+
+LINKS:
+- Mostrá siempre el link completo de la nota.
+- Usá formato HTML: <a href="URL" target="_blank">Ver nota</a>
+
+FORMATO:
+- Usá listas numeradas cuando haya varios ítems.
+- No menciones documentos ni chunks.
+"""
+
+    user_prompt = f"""
+CONTEXTO:
+{context}
+
+PREGUNTA:
+{question}
+"""
 
     completion = client.chat.completions.create(
         model="gpt-4.1-mini",
-        messages=messages,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
         temperature=0.2,
     )
 
