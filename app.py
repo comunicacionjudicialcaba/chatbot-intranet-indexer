@@ -52,12 +52,6 @@ MESES = {
     "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
 }
 
-def parse_date_iso(fecha_iso):
-    try:
-        return datetime.strptime(fecha_iso, "%Y-%m-%d")
-    except:
-        return None
-
 def detectar_mes(texto):
     t = texto.lower()
     for k, v in MESES.items():
@@ -72,7 +66,7 @@ def detectar_anio(texto):
     return None
 
 # ------------------------
-# DETECCIÓN DE PLENARIO (DATA)
+# DETECCIÓN DE PLENARIO
 # ------------------------
 
 def es_plenario(item):
@@ -97,7 +91,7 @@ def semantic_search(query_embedding, top_k=40):
     return results, scores
 
 # ------------------------
-# AGRUPAR POR URL (RAG)
+# AGRUPAR POR URL
 # ------------------------
 
 def group_chunks_by_url(chunks):
@@ -115,7 +109,7 @@ def group_chunks_by_url(chunks):
     return grouped
 
 # ------------------------
-# CONTEXTO MULTI DOC
+# CONTEXTO
 # ------------------------
 
 def build_context(docs):
@@ -136,7 +130,6 @@ def build_context(docs):
 SYSTEM_PROMPT = """
 Sos un asistente del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
 Respondés únicamente con la información incluida en los textos provistos.
-No uses conocimiento externo ni hagas suposiciones.
 
 REGLAS:
 - No inventes datos.
@@ -149,7 +142,7 @@ SI LA PREGUNTA ES TEMÁTICA:
 - Para cada una:
   • Título
   • Breve descripción
-  • Link clickeable:
+  • Link:
     <a href="URL" target="_blank">Ver nota</a>
 
 SI LA PREGUNTA ES SOBRE UN EVENTO:
@@ -157,7 +150,7 @@ SI LA PREGUNTA ES SOBRE UN EVENTO:
 - Enumerá todos los puntos tratados.
 
 FORMATO:
-- Listas numeradas si hay varios puntos.
+- Usá listas cuando corresponda.
 - Links siempre en HTML.
 """
 
@@ -172,7 +165,6 @@ def home():
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-
     question = (data.get("question") or "").strip()
     q_lower = question.lower()
 
@@ -182,7 +174,7 @@ def chat():
         return jsonify({"answer": "No recibí la pregunta."})
 
     # =========================================================
-    # 🟣 MODO PLENARIO (SOLO DATA)
+    # 🟣 MODO PLENARIO (SIN LLM PARA LISTADOS)
     # =========================================================
 
     if "plenario" in q_lower:
@@ -200,19 +192,34 @@ def chat():
 
         plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
-        # ---- Conteo ----
-        if "cuantos" in q_lower:
+        # ---- LISTADO DE PLENARIOS ----
+        if "cuáles" in q_lower or "cuales" in q_lower or "qué plenarios" in q_lower:
+
+            if not plenarios:
+                return jsonify({"answer": "No se registran plenarios para el período solicitado."})
+
+            out = ["Estos fueron los plenarios registrados:\n"]
+            for p in plenarios:
+                out.append(
+                    f"- {p.get('fecha','')} — {p.get('titulo','')} "
+                    f'(<a href="{p.get("url")}" target="_blank">Ver nota</a>)'
+                )
+            return jsonify({"answer": "<br>".join(out)})
+
+        # ---- CUÁNTOS ----
+        if "cuántos" in q_lower or "cuantos" in q_lower:
             if anio_pedido:
-                return jsonify({"answer": f"Durante {anio_pedido} se realizaron {len(plenarios)} plenarios."})
+                return jsonify({"answer": f"Durante {anio_pedido} se registran {len(plenarios)} plenarios."})
             return jsonify({"answer": f"Se registran {len(plenarios)} plenarios en los textos disponibles."})
 
-        # ---- Último ----
+        # ---- ÚLTIMO ----
         if "último" in q_lower or "ultimo" in q_lower:
             plenarios = plenarios[:1]
 
         if not plenarios:
             return jsonify({"answer": "No encontré plenarios para el período solicitado."})
 
+        # ---- DETALLE DE UN PLENARIO ----
         doc = plenarios[0]
 
         prompt = f"""
@@ -244,21 +251,15 @@ PREGUNTA:
         input=question
     ).data[0].embedding
 
-    chunks, scores = semantic_search(np.array(q_emb), top_k=50)
+    chunks, scores = semantic_search(np.array(q_emb), top_k=60)
 
-    # boost semántico por keywords
     KEYWORDS = ["frecuencia judicial", "mia", "lenguaje claro", "salud", "uma", "obra social", "paritaria", "fachada"]
 
     def keyword_score(c):
         t = (c.get("titulo","") + " " + c.get("texto","")).lower()
         return sum(2 for k in KEYWORDS if k in t and k in q_lower)
 
-    chunks = sorted(
-        chunks,
-        key=lambda c: keyword_score(c),
-        reverse=True
-    )
-
+    chunks = sorted(chunks, key=lambda c: keyword_score(c), reverse=True)
     chunks = [c for c in chunks if len(c.get("texto","")) > 300]
 
     docs = group_chunks_by_url(chunks)[:6]
