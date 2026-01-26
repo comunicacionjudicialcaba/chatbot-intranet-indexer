@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request, render_template
 import json
 import os
-import re
 from datetime import datetime
 import numpy as np
 from openai import OpenAI
+from collections import defaultdict
 
 # ------------------------
 # INIT
@@ -16,7 +16,7 @@ app = Flask(__name__)
 DATA_FILE = "data.json"
 
 # ------------------------
-# LOAD DATA (opcional)
+# LOAD DATA
 # ------------------------
 
 def load_data():
@@ -36,111 +36,76 @@ print("🔄 Cargando embeddings...")
 embeddings = np.load("embeddings.npy")
 
 with open("meta.json", "r", encoding="utf-8") as f:
-    meta = json.load(f)
+    metadata = json.load(f)
 
-with open("chunks.json", "r", encoding="utf-8") as f:
-    chunks = json.load(f)
-
-# normalizar embeddings
 norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
 embeddings_norm = embeddings / norms
 
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
 # ------------------------
-# FECHAS Y MESES
+# SEMANTIC SEARCH
 # ------------------------
 
-MESES = {
-    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
-    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9,
-    "octubre": 10, "noviembre": 11, "diciembre": 12
-}
-
-def detectar_mes(texto):
-    t = texto.lower()
-    for nombre, num in MESES.items():
-        if nombre in t:
-            return num
-    return None
-
-def pide_ultimo(texto):
-    return bool(re.search(r"\bú|últim|reciente|más nuevo\b", texto.lower()))
+def semantic_search(query_embedding, top_k=60):
+    q = query_embedding / np.linalg.norm(query_embedding)
+    sims = np.dot(embeddings_norm, q)
+    top_idx = np.argsort(sims)[-top_k:][::-1]
+    results = [metadata[i] for i in top_idx]
+    scores = [float(sims[i]) for i in top_idx]
+    return results, scores
 
 # ------------------------
-# SIMILITUD
+# HELPERS
 # ------------------------
 
-def cosine_sim(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+def parse_date_iso(fecha_iso):
+    try:
+        return datetime.strptime(fecha_iso, "%Y-%m-%d")
+    except:
+        return None
+
+def keyword_recall(query, records, limit=30):
+    q = query.lower()
+    hits = []
+    for r in records:
+        t = (r.get("titulo","") + " " + r.get("texto","")).lower()
+        if q in t:
+            hits.append(r)
+    return hits[:limit]
 
 # ------------------------
-# AGRUPAR POR URL (DOCUMENTO)
+# GROUP CHUNKS BY DOCUMENT
 # ------------------------
 
-def agrupar_por_url(indices, scores):
-    docs = {}
+def group_chunks_by_url(chunks):
+    docs = defaultdict(list)
+    for c in chunks:
+        docs[c["url"]].append(c)
 
-    for idx, score in zip(indices, scores):
-        m = meta[idx]
-        c = chunks[idx]
-        url = m.get("url")
+    grouped = []
+    for url, parts in docs.items():
+        text = "\n".join(p.get("texto", "") for p in parts)
+        base = parts[0].copy()
+        base["texto"] = text
+        grouped.append(base)
 
-        docs.setdefault(url, {
-            "url": url,
-            "titulo": m.get("titulo"),
-            "fecha_iso": m.get("fecha_iso"),
-            "anio": m.get("anio"),
-            "mes": m.get("mes"),
-            "textos": [],
-            "score": 0
-        })
-
-        docs[url]["textos"].append(c.get("texto", ""))
-        docs[url]["score"] = max(docs[url]["score"], score)
-
-    for d in docs.values():
-        d["texto"] = "\n".join(d["textos"])
-
-    return list(docs.values())
+    return grouped
 
 # ------------------------
-# FILTRO POR FECHA
-# ------------------------
-
-def filtrar_por_fecha(docs, pregunta):
-    mes = detectar_mes(pregunta)
-    quiere_ultimo = pide_ultimo(pregunta)
-
-    filtrados = docs
-
-    if mes:
-        filtrados = [d for d in filtrados if d.get("mes") == mes]
-
-    if quiere_ultimo and filtrados:
-        filtrados = sorted(
-            filtrados,
-            key=lambda d: d.get("fecha_iso") or "",
-            reverse=True
-        )
-        return filtrados[:1]
-
-    return filtrados
-
-# ------------------------
-# CONTEXTO PARA PROMPT
+# BUILD CONTEXT
 # ------------------------
 
 def build_context(docs):
     partes = []
     for d in docs:
         partes.append(
-            f"TÍTULO: {d.get('titulo','')}\n"
-            f"FECHA: {d.get('fecha_iso','')}\n"
-            f"URL: {d.get('url','')}\n\n"
-            f"{d.get('texto','')}\n"
+            f"Título: {d.get('titulo','')}\n"
+            f"Fecha: {d.get('fecha','')}\n"
+            f"Texto:\n{d.get('texto','')}\n"
+            f"URL: {d.get('url','')}\n"
         )
-    return "\n\n---\n\n".join(partes)
+    return "\n---\n".join(partes)
 
 # ------------------------
 # PROMPT
@@ -151,25 +116,24 @@ Sos un asistente del Consejo de la Magistratura de la Ciudad Autónoma de Buenos
 Respondés únicamente con la información incluida en el CONTEXTO provisto.
 No uses conocimiento externo ni hagas suposiciones.
 
-REGLAS OBLIGATORIAS:
-- No inventes información que no esté explícitamente en el texto.
-- Si un dato no aparece en el texto, decí claramente: "No se menciona en el texto".
-- No mezcles información de documentos distintos.
-- No infieras temas a partir de títulos: usá solo el contenido del texto.
+REGLAS:
+- No inventes datos.
+- Si algo no figura, decí: "No se menciona en el texto".
+- No infieras por títulos: usá solo el contenido del texto.
 
-CUANDO LA PREGUNTA SEA SOBRE UN PLENARIO O REUNIÓN:
-- Enumerá los puntos tratados en forma de lista numerada.
-- Incluí proyectos aprobados, reformas, protocolos, convenios, informes de comisiones
-  y cualquier otra decisión mencionada.
-- No limites la respuesta a un solo tema si el texto contiene varios.
+PLENARIOS / EVENTOS:
+- Enumerá todos los temas tratados.
+- Incluí proyectos, protocolos, reformas, convenios, informes y resoluciones.
+- Usá solo el documento del evento.
 
-CUANDO LA PREGUNTA SEA TEMÁTICA (por ejemplo: Frecuencia Judicial, IA, Lenguaje Claro):
-- Explicá lo que el texto dice sobre ese tema, aunque no esté vinculado a un plenario.
-- Podés resumir y unificar información de varios párrafos del mismo documento.
+PREGUNTAS TEMÁTICAS:
+- Podés usar varios textos del contexto.
+- Integrá la información disponible sobre el tema.
+- Podés resumir y agrupar por puntos.
 
 FORMATO:
-- Usá listas numeradas si hay varios puntos.
-- No menciones "documentos", "contexto" ni cómo funciona el sistema.
+- Usá listas cuando haya varios ítems.
+- No menciones documentos ni contexto.
 """
 
 # ------------------------
@@ -203,8 +167,30 @@ def chat():
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
+    q_lower = question.lower()
+
     # ------------------------
-    # EMBEDDING DE PREGUNTA
+    # DETECTAR PREGUNTA TEMÁTICA
+    # ------------------------
+
+    TEMAS = [
+        "frecuencia judicial",
+        "podcast",
+        "mia",
+        "inteligencia artificial",
+        "lenguaje claro",
+        "desafío claro",
+        "cfj",
+        "capacitación",
+        "convenio",
+        "universidad",
+    ]
+
+    es_tematica = any(t in q_lower for t in TEMAS)
+    es_plenario = "plenario" in q_lower or "sesión" in q_lower or "reunión" in q_lower
+
+    # ------------------------
+    # 1. EMBEDDING
     # ------------------------
 
     q_emb = client.embeddings.create(
@@ -212,52 +198,109 @@ def chat():
         input=question
     ).data[0].embedding
 
-    q_vec = np.array(q_emb, dtype="float32")
-
     # ------------------------
-    # RETRIEVAL
+    # 2. RETRIEVAL SEMÁNTICO
     # ------------------------
 
-    sims = np.dot(embeddings_norm, q_vec) / np.linalg.norm(q_vec)
-
-    TOP_K = 30
-    top_idx = np.argsort(sims)[-TOP_K:][::-1]
-    top_scores = sims[top_idx]
-
-    docs = agrupar_por_url(top_idx, top_scores)
-
-    docs = filtrar_por_fecha(docs, question)
-
-    docs = sorted(docs, key=lambda d: d["score"], reverse=True)
-
-    docs = docs[:3]
-
-    if not docs:
-        return jsonify({"answer": "No encontré información del período solicitado."})
-
-    print("📄 Docs usados:")
-    for d in docs:
-        print(" -", d.get("titulo"), d.get("fecha_iso"))
+    chunks_sem, _ = semantic_search(np.array(q_emb), top_k=60)
+    chunks_sem = [c for c in chunks_sem if len(c.get("texto","")) > 200]
 
     # ------------------------
-    # CONTEXTO
+    # 3. KEYWORD RECALL (solo temático)
     # ------------------------
 
-    context = build_context(docs)
+    chunks_kw = []
+    if es_tematica:
+        chunks_kw = keyword_recall(question, metadata, limit=40)
+        chunks_kw = [c for c in chunks_kw if len(c.get("texto","")) > 200]
+
+    # merge sin duplicados
+    by_url = {}
+    for c in chunks_sem + chunks_kw:
+        by_url[c["url"]] = c
+    chunks = list(by_url.values())
 
     # ------------------------
-    # LLM
+    # FILTRO CRÓNICAS PLENARIO
     # ------------------------
+
+    if es_plenario:
+        def es_cronica(t):
+            t = t.lower()
+            return not (
+                t.startswith("convocatoria")
+                or t.startswith("suspensión")
+                or t.startswith("suspension")
+            )
+        chunks = [c for c in chunks if es_cronica(c.get("titulo",""))]
+
+    # ------------------------
+    # FILTROS FECHA
+    # ------------------------
+
+    MESES = {
+        "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+        "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
+    }
+
+    mes_pedido = None
+    for k, v in MESES.items():
+        if k in q_lower:
+            mes_pedido = v
+
+    if mes_pedido:
+        chunks = [c for c in chunks if c.get("mes") == mes_pedido]
+
+    if "último" in q_lower or "ultimo" in q_lower or "reciente" in q_lower:
+        fechas = [parse_date_iso(c.get("fecha_iso")) for c in chunks if c.get("fecha_iso")]
+        if fechas:
+            max_fecha = max(fechas)
+            chunks = [
+                c for c in chunks
+                if parse_date_iso(c.get("fecha_iso")) == max_fecha
+            ]
+
+    print("📦 Chunks finales:", len(chunks))
+    for c in chunks[:5]:
+        print(" -", c.get("titulo"), c.get("fecha_iso"))
+
+    if not chunks:
+        return jsonify({"answer": "No encontré información del período o tema solicitado."})
+
+    # ------------------------
+    # 4. AGRUPAR POR DOC
+    # ------------------------
+
+    docs = group_chunks_by_url(chunks)
+
+    if es_tematica:
+        selected_docs = docs[:6]
+    elif es_plenario:
+        selected_docs = docs[:1]
+    else:
+        selected_docs = docs[:2]
+
+    # ------------------------
+    # 5. CONTEXTO
+    # ------------------------
+
+    context = build_context(selected_docs)
+
+    # ------------------------
+    # 6. LLM
+    # ------------------------
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": f"CONTEXTO:\n{context}\n\nPREGUNTA:\n{question}"
+        }
+    ]
 
     completion = client.chat.completions.create(
         model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"CONTEXTO:\n{context}\n\nPREGUNTA:\n{question}"
-            }
-        ],
+        messages=messages,
         temperature=0.2,
     )
 
