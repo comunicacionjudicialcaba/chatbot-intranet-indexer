@@ -6,6 +6,53 @@ import numpy as np
 from openai import OpenAI
 from collections import defaultdict
 
+# ========================
+# KEYWORD BOOST HELPERS
+# ========================
+
+STOPWORDS = {
+    "el","la","los","las","de","del","y","o","en","un","una","por",
+    "que","se","al","a","con","para","sobre","qué","cual","cuál",
+    "fue","es","son","hubo","hay","ultimo","último","plenario"
+}
+
+INSTITUTIONAL_TERMS = {
+    "uma", "paritaria", "paritarias", "obra", "social", "salario",
+    "fachada", "edificio", "infraestructura", "aumento", "sueldo",
+    "frecuencia", "podcast", "mia", "inteligencia", "artificial",
+    "lenguaje", "claro"
+}
+
+def extract_keywords(text):
+    words = [
+        w.strip(".,¿?¡!()").lower()
+        for w in text.split()
+        if len(w) > 3 and w.lower() not in STOPWORDS
+    ]
+    return list(set(words))
+
+
+def keyword_score(doc, keywords, full_query):
+    score = 0
+    texto = (doc.get("texto") or "").lower()
+    titulo = (doc.get("titulo") or "").lower()
+
+    if full_query.lower() in texto:
+        score += 5
+    if full_query.lower() in titulo:
+        score += 8
+
+    for kw in keywords:
+        if kw in texto:
+            score += 1
+        if kw in titulo:
+            score += 2
+        if kw in INSTITUTIONAL_TERMS and kw in texto:
+            score += 4
+
+    return score
+
+
 # ------------------------
 # INIT
 # ------------------------
@@ -16,7 +63,7 @@ app = Flask(__name__)
 DATA_FILE = "data.json"
 
 # ------------------------
-# LOAD DATA (buscador clásico)
+# LOAD DATA (buscador)
 # ------------------------
 
 def load_data():
@@ -44,6 +91,64 @@ embeddings_norm = embeddings / norms
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
 # ------------------------
+# SEMANTIC SEARCH
+# ------------------------
+
+def semantic_search(query_embedding, top_k=50):
+    q = query_embedding / np.linalg.norm(query_embedding)
+    sims = np.dot(embeddings_norm, q)
+    top_idx = np.argsort(sims)[-top_k:][::-1]
+    results = [metadata[i] for i in top_idx]
+    scores = [float(sims[i]) for i in top_idx]
+    return results, scores
+
+# ------------------------
+# HELPERS
+# ------------------------
+
+def parse_date_iso(fecha_iso):
+    try:
+        return datetime.strptime(fecha_iso, "%Y-%m-%d")
+    except:
+        return None
+
+
+# ------------------------
+# GROUP CHUNKS BY DOCUMENT
+# ------------------------
+
+def group_chunks_by_url(chunks):
+    docs = defaultdict(list)
+    for c in chunks:
+        docs[c["url"]].append(c)
+
+    grouped = []
+    for url, parts in docs.items():
+        text = "\n".join(p.get("texto", "") for p in parts)
+        base = parts[0].copy()
+        base["texto"] = text
+        grouped.append(base)
+
+    return grouped
+
+
+# ------------------------
+# BUILD CONTEXT
+# ------------------------
+
+def build_context(docs, max_docs=6):
+    partes = []
+    for d in docs[:max_docs]:
+        partes.append(
+            f"Título: {d.get('titulo','')}\n"
+            f"Fecha: {d.get('fecha','')}\n"
+            f"Texto:\n{d.get('texto','')}\n"
+            f"URL: {d.get('url','')}\n"
+        )
+    return "\n---\n".join(partes)
+
+
+# ------------------------
 # PROMPT
 # ------------------------
 
@@ -54,7 +159,7 @@ No uses conocimiento externo ni hagas suposiciones.
 
 REGLAS OBLIGATORIAS:
 - No inventes información que no esté explícitamente en el texto.
-- Si un dato no aparece en el contexto, decí: "No se menciona en los textos".
+- Si un dato no aparece en el texto, decí: "No se menciona en los textos".
 - No mezcles información de documentos distintos cuando describas decisiones formales.
 - No infieras temas solo por el título: usá principalmente el contenido del texto.
 
@@ -81,66 +186,6 @@ FORMATO:
 - No menciones "documentos", "chunks" ni "contexto".
 - No expliques cómo funciona el sistema ni el modelo.
 """
-
-# ------------------------
-# SEMANTIC SEARCH
-# ------------------------
-
-def semantic_search(query_embedding, top_k=50):
-    q = query_embedding / np.linalg.norm(query_embedding)
-    sims = np.dot(embeddings_norm, q)
-    top_idx = np.argsort(sims)[-top_k:][::-1]
-    results = [metadata[i] for i in top_idx]
-    scores = [float(sims[i]) for i in top_idx]
-    return results, scores
-
-# ------------------------
-# HELPERS
-# ------------------------
-
-def parse_date_iso(fecha_iso):
-    try:
-        return datetime.strptime(fecha_iso, "%Y-%m-%d")
-    except:
-        return None
-
-MESES = {
-    "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
-    "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
-}
-
-# ------------------------
-# GROUP CHUNKS BY DOCUMENT
-# ------------------------
-
-def group_chunks_by_url(chunks):
-    docs = defaultdict(list)
-    for c in chunks:
-        docs[c["url"]].append(c)
-
-    grouped = []
-    for url, parts in docs.items():
-        text = "\n".join(p.get("texto", "") for p in parts)
-        base = parts[0].copy()
-        base["texto"] = text
-        grouped.append(base)
-
-    return grouped
-
-# ------------------------
-# BUILD CONTEXT
-# ------------------------
-
-def build_context(docs):
-    partes = []
-    for d in docs:
-        partes.append(
-            f"TÍTULO: {d.get('titulo','')}\n"
-            f"FECHA: {d.get('fecha','')}\n"
-            f"TEXTO:\n{d.get('texto','')}\n"
-            f"URL: {d.get('url','')}\n"
-        )
-    return "\n\n---\n\n".join(partes)
 
 # ------------------------
 # ROUTES
@@ -190,92 +235,102 @@ def chat():
 
     chunks, scores = semantic_search(np.array(q_emb), top_k=60)
 
-    # solo chunks con texto real
+    # chunks con texto útil
     chunks = [c for c in chunks if len(c.get("texto","")) > 200]
 
+    # evitar convocatorias cuando se habla de plenario
+    if "plenario" in q_lower:
+        def es_cronica(t):
+            t = t.lower()
+            return not (
+                t.startswith("convocatoria")
+                or t.startswith("suspensión")
+                or t.startswith("suspension")
+            )
+        chunks = [c for c in chunks if es_cronica(c.get("titulo",""))]
+
     # ------------------------
-    # 3. DETECCIÓN DE MODO
+    # 3. FILTROS POR MES / ÚLTIMO
     # ------------------------
 
-    es_plenario = "plenario" in q_lower or "reunión" in q_lower or "sesión" in q_lower
-
-    # ------------------------
-    # 4. FILTRO POR MES
-    # ------------------------
+    MESES = {
+        "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+        "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
+    }
 
     mes_pedido = None
-    for k, v in MESES.items():
+    for k,v in MESES.items():
         if k in q_lower:
             mes_pedido = v
 
     if mes_pedido:
         chunks = [c for c in chunks if c.get("mes") == mes_pedido]
 
+    if "último" in q_lower or "ultimo" in q_lower or "reciente" in q_lower:
+        fechas = [parse_date_iso(c.get("fecha_iso")) for c in chunks if c.get("fecha_iso")]
+        if fechas:
+            max_fecha = max(fechas)
+            chunks = [
+                c for c in chunks
+                if parse_date_iso(c.get("fecha_iso")) == max_fecha
+            ]
+
+    if not chunks:
+        return jsonify({"answer": "No encontré información del período solicitado."})
+
     # ------------------------
-    # 5. AGRUPAR POR DOCUMENTO
+    # 4. AGRUPAR POR DOCUMENTO
     # ------------------------
 
     docs = group_chunks_by_url(chunks)
 
     # ------------------------
-    # 6. SELECCIÓN FINAL DE DOCS
+    # 5. KEYWORD BOOST
     # ------------------------
 
-    if es_plenario:
-        # último o por mes → un solo documento
-        docs_validos = [d for d in docs if d.get("fecha_iso")]
+    keywords = extract_keywords(question)
+    scored_docs = []
 
-        if docs_validos:
-            docs_validos.sort(
-                key=lambda d: parse_date_iso(d.get("fecha_iso")) or datetime.min,
-                reverse=True
-            )
-            docs_final = [docs_validos[0]]
-        else:
-            docs_final = docs[:1]
+    for d in docs:
+        s = keyword_score(d, keywords, question)
+        scored_docs.append((s, d))
+
+    scored_docs.sort(key=lambda x: x[0], reverse=True)
+    docs = [d for s, d in scored_docs]
+
+    # ------------------------
+    # 6. CONTEXTO
+    # ------------------------
+
+    # modo plenario → un solo documento
+    if "plenario" in q_lower:
+        context_docs = docs[:1]
     else:
-        # temática → varios documentos
-        docs_final = docs[:8]
+        context_docs = docs[:6]
 
-    print("📄 Documentos usados:", len(docs_final))
-    for d in docs_final:
-        print(" -", d.get("titulo"), d.get("url"))
-
-    if not docs_final:
-        return jsonify({"answer": "No encontré información relevante para la consulta."})
+    context = build_context(context_docs)
 
     # ------------------------
-    # 7. CONTEXTO
+    # 7. LLM
     # ------------------------
 
-    context = build_context(docs_final)
-
-    user_prompt = f"""
-CONTEXTO:
-{context}
-
-PREGUNTA:
-{question}
-"""
-
-    # ------------------------
-    # 8. OPENAI COMPLETION
-    # ------------------------
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"CONTEXTO:\n{context}\n\nPREGUNTA:\n{question}"}
+    ]
 
     completion = client.chat.completions.create(
         model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
+        messages=messages,
         temperature=0.2,
     )
 
     answer = completion.choices[0].message.content
 
-    print("✅ RESPUESTA:", answer[:400])
+    print("✅ RESPUESTA:", answer[:300])
 
     return jsonify({"answer": answer})
+
 
 # ------------------------
 # RUN
