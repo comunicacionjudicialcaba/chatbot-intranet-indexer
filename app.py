@@ -213,10 +213,12 @@ def chat():
     # ------------------------
 
     system = (
-        "Sos un asistente institucional del Poder Judicial de la CABA. "
-        "Debés enumerar decisiones y temas tratados en el plenario: "
-        "proyectos aprobados, protocolos, reformas, convenios, informes "
-        "y resoluciones de comisiones. No resumas en palabras generales."
+        "Sos un asistente institucional del Poder Judicial de la CABA."
+        "Respondé SOLO con información del contexto."
+        "Leé todo el texto y enumerá TODOS los temas tratados."
+        "Si hay secciones (proyectos, informes, comisiones), separalos."
+        "El usuario te va a preguntar sobre muchos temas, y vos tenés que encontrar esos temas en tu base de datos."
+        "luego ordenarlos cronologicamente si hay resultados en muchos dias distintos".
     )
 
     user_prompt = f"""
