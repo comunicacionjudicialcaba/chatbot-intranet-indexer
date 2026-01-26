@@ -182,4 +182,85 @@ def parse_sheet(sheet_id):
             "fecha": row[i_fecha] if i_fecha is not None and i_fecha < len(row) else "",
             "titulo": row[i_titulo] if i_titulo is not None and i_titulo < len(row) else "",
             "autor": row[i_autor] if i_autor is not None and i_autor < len(row) else "",
-            "seccion": row[i_seccion] if i_s]()
+            "seccion": row[i_seccion] if i_seccion is not None and i_seccion < len(row) else "",
+            "url": row[i_url].strip() if i_url is not None and i_url < len(row) else "",
+            "texto": "",
+        }
+        data.append(item)
+
+    return data
+
+# =========================
+# MERGE POR URL (DOC MANDA)
+# =========================
+
+def merge_by_url(records):
+    by_url = {}
+    sin_url = []
+
+    for r in records:
+        url = (r.get("url") or "").strip()
+        if url:
+            by_url.setdefault(url, []).append(r)
+        else:
+            sin_url.append(r)
+
+    merged = []
+
+    for url, items in by_url.items():
+        base = {"url": url, "texto": ""}
+
+        for it in items:
+            if it.get("tipo") == "sheet":
+                for k, v in it.items():
+                    if k != "texto":
+                        base[k] = v
+            else:
+                base["texto"] += it.get("texto", "")
+                base.setdefault("fecha", it.get("fecha"))
+                base.setdefault("titulo", it.get("titulo"))
+
+        fecha_iso, anio, mes = normalizar_fecha(base.get("fecha"))
+
+        base["fecha_iso"] = fecha_iso
+        base["anio"] = anio
+        base["mes"] = mes
+
+        merged.append(base)
+
+    merged.extend(sin_url)
+    return merged
+
+# =========================
+# MAIN
+# =========================
+
+def main():
+    files = list_files()
+
+    print("Archivos encontrados:")
+    for f in files:
+        print("-", f["name"], f["mimeType"])
+
+    data = []
+
+    for f in files:
+        if f["mimeType"] == "application/vnd.google-apps.document":
+            data.extend(parse_doc(f["id"]))
+
+        elif f["mimeType"] == "application/vnd.google-apps.spreadsheet":
+            data.extend(parse_sheet(f["id"]))
+
+    print("Registros antes de merge:", len(data))
+
+    data = merge_by_url(data)
+
+    print("Registros después de merge:", len(data))
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    print(f"✔ Indexación completa: {len(data)} registros")
+
+if __name__ == "__main__":
+    main()
