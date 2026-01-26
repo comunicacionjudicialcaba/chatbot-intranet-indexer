@@ -145,6 +145,13 @@ def chat():
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
+        
+# 🔧 TEST HTML CLICK
+    
+    if question.lower() == "testlink":
+        return jsonify({
+            "answer": '<a href="https://google.com" target="_blank">TEST LINK BACKEND</a>'
+        })
 
     q_lower = question.lower()
 
