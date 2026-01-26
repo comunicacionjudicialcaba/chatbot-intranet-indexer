@@ -35,12 +35,13 @@ sheets_service = build("sheets", "v4", credentials=creds)
 docs_service = build("docs", "v1", credentials=creds)
 
 # =========================
-# FECHA NORMALIZADA
+# FECHAS
 # =========================
 
 MESES = {
     "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
-    "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
+    "julio":7, "agosto":8, "septiembre":9, "setiembre":9,
+    "octubre":10, "noviembre":11, "diciembre":12
 }
 
 def normalizar_fecha(fecha):
@@ -49,14 +50,14 @@ def normalizar_fecha(fecha):
 
     f = fecha.strip().lower()
 
-    # formato sheet: 17/12/2025
+    # sheet: 17/12/2025
     try:
         d, m, y = f.split("/")
         return f"{y}-{m.zfill(2)}-{d.zfill(2)}", int(y), int(m)
     except:
         pass
 
-    # formato doc: miércoles 17 de diciembre de 2025
+    # doc: Miércoles 17 de diciembre de 2025
     for mes_txt, mes_num in MESES.items():
         if mes_txt in f:
             try:
@@ -83,7 +84,7 @@ def list_files():
     return results.get("files", [])
 
 # =========================
-# PARSE DOC
+# PARSE DOC (DOC ÚNICO CON MUCHAS NOTAS)
 # =========================
 
 def parse_doc(doc_id):
@@ -96,27 +97,28 @@ def parse_doc(doc_id):
                 if "textRun" in e:
                     text += e["textRun"].get("content", "")
 
-    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    lines = [l.rstrip() for l in text.split("\n")]
 
     data = []
     current = None
 
     fecha_re = re.compile(
-        r"^(lunes|martes|miércoles|miercoles|jueves|viernes)?[, ]*\s*\d{1,2}\s+de\s+"
-        r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        r"^(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)?\s*\d{1,2}\s+de\s+"
+        r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)"
         r"\s+de\s+\d{4}",
         re.I
     )
 
     for line in lines:
+        l = line.strip()
 
-        # inicio de nueva nota
-        if fecha_re.match(line):
+        # nueva nota
+        if fecha_re.match(l):
             if current:
                 data.append(current)
 
             current = {
-                "fecha": line,
+                "fecha": l,
                 "titulo": "",
                 "texto": "",
                 "url": "",
@@ -127,22 +129,22 @@ def parse_doc(doc_id):
         if not current:
             continue
 
-        # detectar URL en cualquier parte
-        if "http" in line and "intranet.jusbaires.gob.ar" in line:
-            current["url"] = line.strip()
+        # url en cualquier parte
+        if "http" in l and "jusbaires.gob.ar" in l:
+            current["url"] = l.strip()
             continue
 
-        if not current["titulo"]:
-            current["titulo"] = line
+        if not current["titulo"] and l:
+            current["titulo"] = l
             continue
 
-        current["texto"] += line + "\n"
+        if l:
+            current["texto"] += l + "\n"
 
     if current:
         data.append(current)
 
     return data
-
 
 # =========================
 # PARSE SHEET
@@ -180,81 +182,4 @@ def parse_sheet(sheet_id):
             "fecha": row[i_fecha] if i_fecha is not None and i_fecha < len(row) else "",
             "titulo": row[i_titulo] if i_titulo is not None and i_titulo < len(row) else "",
             "autor": row[i_autor] if i_autor is not None and i_autor < len(row) else "",
-            "seccion": row[i_seccion] if i_seccion is not None and i_seccion < len(row) else "",
-            "url": row[i_url] if i_url is not None and i_url < len(row) else "",
-            "texto": "",
-        }
-        data.append(item)
-
-    return data
-
-# =========================
-# MERGE BY URL + FECHA NORMALIZADA
-# =========================
-
-def merge_by_url(records):
-    by_url = {}
-    no_url = []
-
-    for r in records:
-        url = (r.get("url") or "").strip()
-        if url:
-            by_url.setdefault(url, []).append(r)
-        else:
-            no_url.append(r)
-
-    merged = []
-
-    for url, items in by_url.items():
-        base = {"url": url, "texto": ""}
-
-        for it in items:
-            if it.get("tipo") == "sheet":
-                for k, v in it.items():
-                    if k != "texto":
-                        base[k] = v
-            else:
-                base["texto"] += it.get("texto", "")
-                base.setdefault("fecha", it.get("fecha"))
-                base.setdefault("titulo", it.get("titulo"))
-                base.setdefault("tipo", it.get("tipo"))
-
-        merged.append(base)
-
-    merged.extend(no_url)
-    return merged
-
-
-# =========================
-# MAIN
-# =========================
-
-def main():
-    files = list_files()
-
-    print("Archivos encontrados:")
-    for f in files:
-        print("-", f["name"], f["mimeType"])
-
-    data = []
-
-    for f in files:
-        if f["mimeType"] == "application/vnd.google-apps.document":
-            data.extend(parse_doc(f["id"]))
-
-        elif f["mimeType"] == "application/vnd.google-apps.spreadsheet":
-            data.extend(parse_sheet(f["id"]))
-
-    print("Registros antes de merge:", len(data))
-
-    data = merge_by_url(data)
-
-    print("Registros después de merge:", len(data))
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-    print(f"✔ Indexación completa: {len(data)} registros")
-
-if __name__ == "__main__":
-    main()
+            "seccion": row[i_seccion] if i_s]()
