@@ -1,30 +1,55 @@
 import json
+import math
 
 INPUT = "data.json"
 OUTPUT = "chunks.json"
 
-CHUNK_SIZE = 800
-OVERLAP = 150
+MAX_CHARS = 1200      # aprox 300 tokens
+MIN_CHARS = 200
+
+# ------------------------
+# UTILS
+# ------------------------
+
+def split_paragraphs(text):
+    parts = []
+    buf = []
+
+    for line in text.split("\n"):
+        if line.strip():
+            buf.append(line.strip())
+        else:
+            if buf:
+                parts.append(" ".join(buf))
+                buf = []
+    if buf:
+        parts.append(" ".join(buf))
+
+    return parts
 
 
-def chunk_text(text, size, overlap):
+def group_paragraphs(paragraphs):
     chunks = []
-    start = 0
-    n = len(text)
+    current = ""
 
-    if n <= size:
-        return [text.strip()]
+    for p in paragraphs:
+        if len(current) + len(p) < MAX_CHARS:
+            current += ("\n" if current else "") + p
+        else:
+            if len(current) >= MIN_CHARS:
+                chunks.append(current.strip())
+                current = p
+            else:
+                current += "\n" + p
 
-    while start < n:
-        end = start + size
-        chunk = text[start:end]
-        chunks.append(chunk.strip())
-        start = end - overlap
-        if start < 0:
-            start = 0
+    if len(current) >= MIN_CHARS:
+        chunks.append(current.strip())
 
     return chunks
 
+# ------------------------
+# MAIN
+# ------------------------
 
 with open(INPUT, "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -32,36 +57,24 @@ with open(INPUT, "r", encoding="utf-8") as f:
 all_chunks = []
 
 for idx, item in enumerate(data):
-    titulo = item.get("titulo") or ""
-    fecha = item.get("fecha") or ""
-    seccion = item.get("seccion") or ""
-    tipo = item.get("tipo") or ""
-    url = item.get("url") or f"item-{idx}"
-
-    texto = item.get("texto") or ""
-
-    # -------- construir texto base para embeddings --------
-    base_text = (
-        f"Título: {titulo}\n"
-        f"Fecha: {fecha}\n"
-        f"Tipo: {tipo}\n"
-        f"Sección: {seccion}\n\n"
-        f"{texto}"
-    ).strip()
-
-    if len(base_text) < 40:
+    texto = (item.get("texto") or "").strip()
+    if len(texto) < 80:
         continue
 
-    parts = chunk_text(base_text, CHUNK_SIZE, OVERLAP)
+    paragraphs = split_paragraphs(texto)
+    parts = group_paragraphs(paragraphs)
 
     for i, part in enumerate(parts):
         all_chunks.append({
-            "id": f"{url}#chunk-{i}",
-            "url": url,
-            "titulo": titulo,
-            "fecha": fecha,
-            "tipo": tipo,
-            "seccion": seccion,
+            "id": f"{item.get('url','item-'+str(idx))}#chunk-{i}",
+            "url": item.get("url"),
+            "titulo": item.get("titulo"),
+            "fecha": item.get("fecha"),
+            "fecha_iso": item.get("fecha_iso"),
+            "anio": item.get("anio"),
+            "mes": item.get("mes"),
+            "tipo": item.get("tipo"),
+            "seccion": item.get("seccion"),
             "texto": part
         })
 
