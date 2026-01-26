@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request, render_template
 import json
 import os
+import re
 from datetime import datetime
 import numpy as np
 from openai import OpenAI
-from collections import defaultdict
 
 # ------------------------
 # INIT
@@ -16,7 +16,7 @@ app = Flask(__name__)
 DATA_FILE = "data.json"
 
 # ------------------------
-# LOAD DATA (buscador clásico)
+# LOAD DATA (opcional)
 # ------------------------
 
 def load_data():
@@ -28,7 +28,7 @@ def load_data():
 DATA = load_data()
 
 # ------------------------
-# LOAD EMBEDDINGS (RAG)
+# LOAD EMBEDDINGS
 # ------------------------
 
 print("🔄 Cargando embeddings...")
@@ -36,67 +36,141 @@ print("🔄 Cargando embeddings...")
 embeddings = np.load("embeddings.npy")
 
 with open("meta.json", "r", encoding="utf-8") as f:
-    metadata = json.load(f)
+    meta = json.load(f)
 
+with open("chunks.json", "r", encoding="utf-8") as f:
+    chunks = json.load(f)
+
+# normalizar embeddings
 norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
 embeddings_norm = embeddings / norms
 
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
 # ------------------------
-# SEMANTIC SEARCH
+# FECHAS Y MESES
 # ------------------------
 
-def semantic_search(query_embedding, top_k=40):
-    q = query_embedding / np.linalg.norm(query_embedding)
-    sims = np.dot(embeddings_norm, q)
-    top_idx = np.argsort(sims)[-top_k:][::-1]
-    results = [metadata[i] for i in top_idx]
-    scores = [float(sims[i]) for i in top_idx]
-    return results, scores
+MESES = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9,
+    "octubre": 10, "noviembre": 11, "diciembre": 12
+}
+
+def detectar_mes(texto):
+    t = texto.lower()
+    for nombre, num in MESES.items():
+        if nombre in t:
+            return num
+    return None
+
+def pide_ultimo(texto):
+    return bool(re.search(r"\bú|últim|reciente|más nuevo\b", texto.lower()))
 
 # ------------------------
-# HELPERS
+# SIMILITUD
 # ------------------------
 
-def parse_date_iso(fecha_iso):
-    try:
-        return datetime.strptime(fecha_iso, "%Y-%m-%d")
-    except:
-        return None
+def cosine_sim(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 # ------------------------
-# GROUP CHUNKS BY DOCUMENT
+# AGRUPAR POR URL (DOCUMENTO)
 # ------------------------
 
-def group_chunks_by_url(chunks):
-    docs = defaultdict(list)
-    for c in chunks:
-        docs[c["url"]].append(c)
+def agrupar_por_url(indices, scores):
+    docs = {}
 
-    grouped = []
-    for url, parts in docs.items():
-        text = "\n".join(p.get("texto", "") for p in parts)
-        base = parts[0].copy()
-        base["texto"] = text
-        grouped.append(base)
+    for idx, score in zip(indices, scores):
+        m = meta[idx]
+        c = chunks[idx]
+        url = m.get("url")
 
-    return grouped
+        docs.setdefault(url, {
+            "url": url,
+            "titulo": m.get("titulo"),
+            "fecha_iso": m.get("fecha_iso"),
+            "anio": m.get("anio"),
+            "mes": m.get("mes"),
+            "textos": [],
+            "score": 0
+        })
+
+        docs[url]["textos"].append(c.get("texto", ""))
+        docs[url]["score"] = max(docs[url]["score"], score)
+
+    for d in docs.values():
+        d["texto"] = "\n".join(d["textos"])
+
+    return list(docs.values())
 
 # ------------------------
-# BUILD CONTEXT
+# FILTRO POR FECHA
+# ------------------------
+
+def filtrar_por_fecha(docs, pregunta):
+    mes = detectar_mes(pregunta)
+    quiere_ultimo = pide_ultimo(pregunta)
+
+    filtrados = docs
+
+    if mes:
+        filtrados = [d for d in filtrados if d.get("mes") == mes]
+
+    if quiere_ultimo and filtrados:
+        filtrados = sorted(
+            filtrados,
+            key=lambda d: d.get("fecha_iso") or "",
+            reverse=True
+        )
+        return filtrados[:1]
+
+    return filtrados
+
+# ------------------------
+# CONTEXTO PARA PROMPT
 # ------------------------
 
 def build_context(docs):
     partes = []
     for d in docs:
         partes.append(
-            f"Título: {d.get('titulo','')}\n"
-            f"Fecha: {d.get('fecha','')}\n"
-            f"Texto completo:\n{d.get('texto','')}\n"
-            f"URL: {d.get('url','')}\n"
+            f"TÍTULO: {d.get('titulo','')}\n"
+            f"FECHA: {d.get('fecha_iso','')}\n"
+            f"URL: {d.get('url','')}\n\n"
+            f"{d.get('texto','')}\n"
         )
-    return "\n---\n".join(partes)
+    return "\n\n---\n\n".join(partes)
+
+# ------------------------
+# PROMPT
+# ------------------------
+
+SYSTEM_PROMPT = """
+Sos un asistente del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
+Respondés únicamente con la información incluida en el CONTEXTO provisto.
+No uses conocimiento externo ni hagas suposiciones.
+
+REGLAS OBLIGATORIAS:
+- No inventes información que no esté explícitamente en el texto.
+- Si un dato no aparece en el texto, decí claramente: "No se menciona en el texto".
+- No mezcles información de documentos distintos.
+- No infieras temas a partir de títulos: usá solo el contenido del texto.
+
+CUANDO LA PREGUNTA SEA SOBRE UN PLENARIO O REUNIÓN:
+- Enumerá los puntos tratados en forma de lista numerada.
+- Incluí proyectos aprobados, reformas, protocolos, convenios, informes de comisiones
+  y cualquier otra decisión mencionada.
+- No limites la respuesta a un solo tema si el texto contiene varios.
+
+CUANDO LA PREGUNTA SEA TEMÁTICA (por ejemplo: Frecuencia Judicial, IA, Lenguaje Claro):
+- Explicá lo que el texto dice sobre ese tema, aunque no esté vinculado a un plenario.
+- Podés resumir y unificar información de varios párrafos del mismo documento.
+
+FORMATO:
+- Usá listas numeradas si hay varios puntos.
+- No menciones "documentos", "contexto" ni cómo funciona el sistema.
+"""
 
 # ------------------------
 # ROUTES
@@ -129,10 +203,8 @@ def chat():
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
-    q_lower = question.lower()
-
     # ------------------------
-    # 1. EMBEDDING
+    # EMBEDDING DE PREGUNTA
     # ------------------------
 
     q_emb = client.embeddings.create(
@@ -140,109 +212,58 @@ def chat():
         input=question
     ).data[0].embedding
 
-    # ------------------------
-    # 2. RETRIEVAL
-    # ------------------------
-
-    chunks, scores = semantic_search(np.array(q_emb), top_k=40)
-
-    # solo chunks con texto
-    chunks = [c for c in chunks if len(c.get("texto","")) > 300]
-
-    # solo crónicas (no convocatorias)
-    if "plenario" in q_lower:
-        def es_cronica(t):
-            t = t.lower()
-            return not (
-                t.startswith("convocatoria")
-                or t.startswith("suspensión")
-                or t.startswith("suspension")
-            )
-        chunks = [c for c in chunks if es_cronica(c.get("titulo",""))]
+    q_vec = np.array(q_emb, dtype="float32")
 
     # ------------------------
-    # 3. FILTROS POR MES / ÚLTIMO
+    # RETRIEVAL
     # ------------------------
 
-    # detectar mes en texto
-    MESES = {
-        "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
-        "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
-    }
+    sims = np.dot(embeddings_norm, q_vec) / np.linalg.norm(q_vec)
 
-    mes_pedido = None
-    for k,v in MESES.items():
-        if k in q_lower:
-            mes_pedido = v
+    TOP_K = 30
+    top_idx = np.argsort(sims)[-TOP_K:][::-1]
+    top_scores = sims[top_idx]
 
-    if mes_pedido:
-        chunks = [c for c in chunks if c.get("mes") == mes_pedido]
+    docs = agrupar_por_url(top_idx, top_scores)
 
-    # "último" → fecha más reciente
-    if "último" in q_lower or "reciente" in q_lower:
-        fechas = [parse_date_iso(c.get("fecha_iso")) for c in chunks if c.get("fecha_iso")]
-        if fechas:
-            max_fecha = max(fechas)
-            chunks = [
-                c for c in chunks
-                if parse_date_iso(c.get("fecha_iso")) == max_fecha
-            ]
+    docs = filtrar_por_fecha(docs, question)
 
-    print("📦 Chunks finales:", len(chunks))
-    for c in chunks[:5]:
-        print(" -", c.get("titulo"), c.get("fecha_iso"))
+    docs = sorted(docs, key=lambda d: d["score"], reverse=True)
 
-    if not chunks:
+    docs = docs[:3]
+
+    if not docs:
         return jsonify({"answer": "No encontré información del período solicitado."})
 
-    # ------------------------
-    # 4. AGRUPAR POR DOCUMENTO
-    # ------------------------
-
-    docs = group_chunks_by_url(chunks)
-    main_doc = docs[:1]
+    print("📄 Docs usados:")
+    for d in docs:
+        print(" -", d.get("titulo"), d.get("fecha_iso"))
 
     # ------------------------
-    # 5. CONTEXTO
+    # CONTEXTO
     # ------------------------
 
-    context = build_context(main_doc)
+    context = build_context(docs)
 
     # ------------------------
-    # 6. PROMPT
+    # LLM
     # ------------------------
-
-    system = (
-        "Sos un asistente institucional del Poder Judicial de la CABA."
-        "Respondé SOLO con información del contexto."
-        "Leé todo el texto y enumerá TODOS los temas tratados."
-        "Si hay secciones (proyectos, informes, comisiones), separalos."
-        "El usuario te va a preguntar sobre muchos temas, y vos tenés que encontrar esos temas en tu base de datos."
-        "luego ordenarlos cronologicamente si hay resultados en muchos dias distintos".
-    )
-
-    user_prompt = f"""
-Enumerá todos los temas tratados y decisiones tomadas en el plenario.
-
-Contexto:
-{context}
-
-Pregunta:
-{question}
-"""
 
     completion = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_prompt},
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": f"CONTEXTO:\n{context}\n\nPREGUNTA:\n{question}"
+            }
         ],
         temperature=0.2,
     )
 
     answer = completion.choices[0].message.content
 
-    print("✅ RESPUESTA:", answer[:300])
+    print("✅ RESPUESTA:", answer[:400])
 
     return jsonify({"answer": answer})
 
