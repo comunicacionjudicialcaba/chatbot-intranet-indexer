@@ -9,6 +9,8 @@ import numpy as np
 from openai import OpenAI
 from collections import defaultdict
 
+GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
+
 # ------------------------
 # INIT
 # ------------------------
