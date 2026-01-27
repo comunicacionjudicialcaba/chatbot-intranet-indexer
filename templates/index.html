@@ -1,82 +1,87 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chatbot Intranet</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f6f6f6;
-    }
+<meta charset="UTF-8" />
+<title>Chatbot Intranet</title>
 
-    h2 {
-      margin-bottom: 10px;
-    }
+<style>
+body { font-family: Arial, sans-serif; margin:20px; background:#f4f4f4; }
+h2 { margin-bottom:8px; }
 
-    #chat {
-      border: 1px solid #ccc;
-      background: #fff;
-      padding: 10px;
-      height: 420px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      border-radius: 6px;
-    }
+#topbar { margin-bottom:8px; }
+#chat { border:1px solid #ccc; background:#fff; padding:10px; height:420px; overflow-y:auto; border-radius:6px; }
 
-    .user {
-      color: #003366;
-      margin-top: 10px;
-      white-space: pre-wrap;
-    }
+.user { color:#003366; margin-top:10px; white-space:pre-wrap; }
+.bot { color:#1b5e20; margin-top:10px; white-space:pre-wrap; }
 
-    .bot {
-      color: #1b5e20;
-      margin-top: 10px;
-      white-space: pre-wrap;
-    }
+#typing { font-style:italic; color:#666; margin-top:5px; display:none; }
 
-    .input-row {
-      display: flex;
-      gap: 8px;
-    }
+.input-row { display:flex; gap:8px; margin-top:8px; }
+#msg { flex:1; padding:8px; }
 
-    #msg {
-      flex: 1;
-      padding: 8px;
-      font-size: 14px;
-    }
+button { padding:8px 12px; cursor:pointer; }
 
-    button {
-      padding: 8px 14px;
-      cursor: pointer;
-    }
+a { color:#0b5ed7; }
 
-    a {
-      color: #0b5ed7;
-      text-decoration: underline;
-    }
-  </style>
+.copy-btn { font-size:12px; margin-top:4px; }
+
+#feedback { margin-top:10px; border-top:1px solid #ccc; padding-top:8px; }
+
+.star { cursor:pointer; font-size:20px; color:#ccc; }
+.star.selected { color:#ff9800; }
+
+textarea { width:100%; height:60px; }
+</style>
 </head>
+
 <body>
 
 <h2>💬 Chat Intranet</h2>
 
+<div id="topbar">
+  Filtrar por año:
+  <select id="yearFilter">
+    <option value="">Todos</option>
+    <option>2025</option>
+    <option>2024</option>
+  </select>
+</div>
+
 <div id="chat"></div>
+<div id="typing">🤖 escribiendo…</div>
 
 <div class="input-row">
   <input id="msg" type="text" placeholder="Escribí tu pregunta..." />
   <button onclick="send()">Enviar</button>
 </div>
 
+<div id="feedback" style="display:none;">
+  <h4>¿Cómo fue la respuesta?</h4>
+  <div id="stars">
+    <span class="star" onclick="rate(1)">★</span>
+    <span class="star" onclick="rate(2)">★</span>
+    <span class="star" onclick="rate(3)">★</span>
+    <span class="star" onclick="rate(4)">★</span>
+    <span class="star" onclick="rate(5)">★</span>
+  </div>
+  <textarea id="comment" placeholder="Comentario opcional..."></textarea>
+  <button onclick="sendFeedback()">Enviar feedback</button>
+</div>
+
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("msg");
+const typing = document.getElementById("typing");
+const yearFilter = document.getElementById("yearFilter");
+
+let lastQuestion = "";
+let lastAnswer = "";
+let rating = 0;
 
 function add(text, cls){
   const d = document.createElement("div");
   d.className = cls;
-  d.innerHTML = text;   // ✅ permite links HTML
+  d.innerHTML = text;
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
 }
@@ -85,28 +90,78 @@ function send(){
   const text = input.value.trim();
   if(!text) return;
 
+  lastQuestion = text;
+
   add("👤 " + text, "user");
   input.value = "";
+  typing.style.display = "block";
 
   fetch("/chat",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ question: text })
+    body: JSON.stringify({
+      question: text,
+      year: yearFilter.value
+    })
   })
   .then(r => r.json())
   .then(data => {
-    console.log("RESPUESTA BACKEND:", data);
-    add("🤖 " + (data.answer || "Sin respuesta"), "bot");
+    typing.style.display = "none";
+    lastAnswer = data.answer || "Sin respuesta";
+
+    add("🤖 " + lastAnswer +
+        `<div><button class="copy-btn" onclick="copyLast()">📋 Copiar</button></div>`,
+        "bot");
+
+    document.getElementById("feedback").style.display = "block";
+    resetStars();
   })
   .catch(err => {
-    console.error(err);
+    typing.style.display = "none";
     add("❌ Error al consultar el servidor", "bot");
   });
+}
+
+function copyLast(){
+  navigator.clipboard.writeText(lastAnswer);
+  alert("Respuesta copiada");
 }
 
 input.addEventListener("keydown", e=>{
   if(e.key === "Enter") send();
 });
+
+/* ---------- Feedback ---------- */
+
+function rate(n){
+  rating = n;
+  const stars = document.querySelectorAll(".star");
+  stars.forEach((s,i)=>{
+    s.classList.toggle("selected", i < n);
+  });
+}
+
+function resetStars(){
+  rating = 0;
+  document.querySelectorAll(".star").forEach(s=>s.classList.remove("selected"));
+  document.getElementById("comment").value = "";
+}
+
+function sendFeedback(){
+  fetch("/feedback",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      question: lastQuestion,
+      answer: lastAnswer,
+      rating: rating,
+      comment: document.getElementById("comment").value
+    })
+  }).then(()=>{
+    alert("Gracias por tu feedback 🙌");
+    document.getElementById("feedback").style.display = "none";
+  });
+}
 </script>
 
 </body>
