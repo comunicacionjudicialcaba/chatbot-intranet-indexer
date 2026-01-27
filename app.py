@@ -213,6 +213,11 @@ FORMATO:
 def home():
     return render_template("index.html")
 
+
+# =========================================================
+# 💬 CHAT
+# =========================================================
+
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -223,56 +228,9 @@ def chat():
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
-        
-# ... TODO EL CÓDIGO DEL CHAT ...
-    return jsonify({"answer": answer})
-
-
-# NUEVO ENDPOINT: FEEDBACK
-@app.route("/feedback", methods=["POST"])
-def feedback():
-    data = request.get_json()
-
-    question = data.get("question", "")
-    answer = data.get("answer", "")
-    rating = data.get("rating", "")
-    comment = data.get("comment", "")
-
-    body = f"""
-FEEDBACK CHATBOT INTRANET
-
-Pregunta:
-{question}
-
-Respuesta:
-{answer}
-
-Puntaje:
-{rating} / 5
-
-Comentario:
-{comment}
-"""
-
-    try:
-        msg = EmailMessage()
-        msg["Subject"] = "FEEDBACK Chatbot Intranet"
-        msg["From"] = os.environ["SMTP_USER"]
-        msg["To"] = "comunicacionjudicialcaba@gmail.com"
-        msg.set_content(body)
-
-        with smtplib.SMTP(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"])) as server:
-            server.starttls()
-            server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
-            server.send_message(msg)
-
-    except Exception as e:
-        print("❌ ERROR ENVIANDO FEEDBACK:", e)
-
-    return jsonify({"status": "ok"})
 
     # =========================================================
-    # 🟣 MODO PLENARIO (SIN LLM PARA LISTADOS)
+    # 🟣 MODO PLENARIO (SIN RAG)
     # =========================================================
 
     if "plenario" in q_lower:
@@ -290,13 +248,13 @@ Comentario:
 
         plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
-        # ---- LISTADO DE PLENARIOS ----
+        # ---- LISTADO ----
         if "cuáles" in q_lower or "cuales" in q_lower or "qué plenarios" in q_lower:
 
             if not plenarios:
                 return jsonify({"answer": "No se registran plenarios para el período solicitado."})
 
-            out = ["Estos fueron los plenarios registrados:\n"]
+            out = ["Estos fueron los plenarios registrados:<br>"]
             for p in plenarios:
                 out.append(
                     f"- {p.get('fecha','')} — {p.get('titulo','')} "
@@ -317,7 +275,7 @@ Comentario:
         if not plenarios:
             return jsonify({"answer": "No encontré plenarios para el período solicitado."})
 
-        # ---- DETALLE DE UN PLENARIO ----
+        # ---- DETALLE ----
         doc = plenarios[0]
 
         prompt = f"""
@@ -386,6 +344,54 @@ PREGUNTA:
 
     answer = completion.choices[0].message.content
     return jsonify({"answer": answer})
+
+
+# =========================================================
+# ✉ FEEDBACK
+# =========================================================
+
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    data = request.get_json()
+
+    question = data.get("question", "")
+    answer = data.get("answer", "")
+    rating = data.get("rating", "")
+    comment = data.get("comment", "")
+
+    body = f"""
+FEEDBACK CHATBOT INTRANET
+
+Pregunta:
+{question}
+
+Respuesta:
+{answer}
+
+Puntaje:
+{rating} / 5
+
+Comentario:
+{comment}
+"""
+
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = "FEEDBACK Chatbot Intranet"
+        msg["From"] = os.environ["SMTP_USER"]
+        msg["To"] = "comunicacionjudicialcaba@gmail.com"
+        msg.set_content(body)
+
+        with smtplib.SMTP(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"])) as server:
+            server.starttls()
+            server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+            server.send_message(msg)
+
+    except Exception as e:
+        print("❌ ERROR ENVIANDO FEEDBACK:", e)
+
+    return jsonify({"status": "ok"})
+
 
 # ------------------------
 # RUN
