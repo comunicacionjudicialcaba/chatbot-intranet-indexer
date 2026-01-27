@@ -113,7 +113,29 @@ function runSearch(){
     resultsBox.appendChild(div);
   });
 }
+// --------------------
+// COPY-PASTE
+// --------------------  
+function copyMessage(el){
+  // Clonar nodo para no modificar el original
+  const clone = el.cloneNode(true);
 
+  // Reemplazar links por "texto: URL"
+  const links = clone.querySelectorAll("a");
+  links.forEach(a=>{
+    const text = a.textContent;
+    const url = a.href;
+    a.replaceWith(`${text}: ${url}`);
+  });
+
+  const text = clone.innerText;
+
+  navigator.clipboard.writeText(text).then(()=>{
+    alert("Respuesta copiada");
+  });
+}
+
+  
 // --------------------
 // CHAT
 // --------------------
