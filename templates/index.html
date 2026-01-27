@@ -1,82 +1,122 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<title>Chatbot Intranet</title>
+  <meta charset="UTF-8" />
+  <title>Chatbot Intranet</title>
 
-<style>
-body { font-family: Arial, sans-serif; margin:20px; background:#f4f4f4; }
-h2 { margin-bottom:8px; }
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
 
-#topbar { margin-bottom:8px; }
-#chat { border:1px solid #ccc; background:#fff; padding:10px; height:420px; overflow-y:auto; border-radius:6px; }
+    h2 { margin-top: 30px; }
 
-.user { color:#003366; margin-top:10px; white-space:pre-wrap; }
-.bot { color:#1b5e20; margin-top:10px; white-space:pre-wrap; }
+    #searchBox { margin-bottom: 15px; }
+    #results { border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: auto; }
 
-#typing { font-style:italic; color:#666; margin-top:5px; display:none; }
+    .result { margin-bottom: 10px; }
+    .result a { text-decoration: none; color: #0645ad; }
 
-.input-row { display:flex; gap:8px; margin-top:8px; }
-#msg { flex:1; padding:8px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; margin-top: 10px; }
 
-button { padding:8px 12px; cursor:pointer; }
+    .user { color: #006; margin-top: 10px; }
+    .bot { color: #060; margin-top: 10px; }
 
-a { color:#0b5ed7; }
+    .typing { font-style: italic; color: #999; }
 
-.copy-btn { font-size:12px; margin-top:4px; }
+    .feedback { margin-top: 8px; font-size: 14px; }
+    .stars span { cursor: pointer; font-size: 18px; }
 
-#feedback { margin-top:10px; border-top:1px solid #ccc; padding-top:8px; }
-
-.star { cursor:pointer; font-size:20px; color:#ccc; }
-.star.selected { color:#ff9800; }
-
-textarea { width:100%; height:60px; }
-</style>
+  </style>
 </head>
-
 <body>
+
+<h2>🔍 Buscador de notas</h2>
+
+<div id="searchBox">
+  <input id="searchInput" type="text" placeholder="Buscar palabras..." style="width:50%" />
+
+  <select id="yearFilter">
+    <option value="">Todos los años</option>
+  </select>
+
+  <button onclick="runSearch()">Buscar</button>
+</div>
+
+<div id="results"></div>
+
+<hr>
 
 <h2>💬 Chat Intranet</h2>
 
-<div id="topbar">
-  Filtrar por año:
-  <select id="yearFilter">
-    <option value="">Todos</option>
-    <option>2025</option>
-    <option>2024</option>
-  </select>
-</div>
-
 <div id="chat"></div>
-<div id="typing">🤖 escribiendo…</div>
 
-<div class="input-row">
-  <input id="msg" type="text" placeholder="Escribí tu pregunta..." />
-  <button onclick="send()">Enviar</button>
-</div>
-
-<div id="feedback" style="display:none;">
-  <h4>¿Cómo fue la respuesta?</h4>
-  <div id="stars">
-    <span class="star" onclick="rate(1)">★</span>
-    <span class="star" onclick="rate(2)">★</span>
-    <span class="star" onclick="rate(3)">★</span>
-    <span class="star" onclick="rate(4)">★</span>
-    <span class="star" onclick="rate(5)">★</span>
-  </div>
-  <textarea id="comment" placeholder="Comentario opcional..."></textarea>
-  <button onclick="sendFeedback()">Enviar feedback</button>
-</div>
+<input id="msg" type="text" style="width:80%" placeholder="Escribí tu pregunta..." />
+<button onclick="send()">Enviar</button>
 
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("msg");
-const typing = document.getElementById("typing");
+const resultsBox = document.getElementById("results");
 const yearFilter = document.getElementById("yearFilter");
 
-let lastQuestion = "";
-let lastAnswer = "";
-let rating = 0;
+let DATA = [];
+
+// --------------------
+// LOAD DATA FOR SEARCH
+// --------------------
+
+fetch("/data")
+  .then(r => r.json())
+  .then(data => {
+    DATA = data;
+    buildYearFilter();
+  });
+
+function buildYearFilter(){
+  const years = [...new Set(DATA.map(d => d.anio).filter(Boolean))].sort((a,b)=>b-a);
+  years.forEach(y=>{
+    const o = document.createElement("option");
+    o.value = y;
+    o.textContent = y;
+    yearFilter.appendChild(o);
+  });
+}
+
+// --------------------
+// SEARCH
+// --------------------
+
+function runSearch(){
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const year = yearFilter.value;
+
+  resultsBox.innerHTML = "";
+
+  let res = DATA.filter(d=>{
+    const text = ((d.titulo||"") + " " + (d.texto||"")).toLowerCase();
+    if(q && !text.includes(q)) return false;
+    if(year && String(d.anio) !== year) return false;
+    return true;
+  });
+
+  if(!res.length){
+    resultsBox.innerHTML = "<i>No hay resultados</i>";
+    return;
+  }
+
+  res.slice(0,100).forEach(d=>{
+    const div = document.createElement("div");
+    div.className = "result";
+    div.innerHTML = `
+      <b>${d.fecha || ""}</b> — ${d.titulo || ""}<br>
+      <a href="${d.url}" target="_blank">Ver nota</a>
+    `;
+    resultsBox.appendChild(div);
+  });
+}
+
+// --------------------
+// CHAT
+// --------------------
 
 function add(text, cls){
   const d = document.createElement("div");
@@ -90,78 +130,34 @@ function send(){
   const text = input.value.trim();
   if(!text) return;
 
-  lastQuestion = text;
-
   add("👤 " + text, "user");
   input.value = "";
-  typing.style.display = "block";
+
+  const typing = document.createElement("div");
+  typing.className = "typing";
+  typing.textContent = "🤖 escribiendo...";
+  chat.appendChild(typing);
 
   fetch("/chat",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      question: text,
-      year: yearFilter.value
-    })
+    body: JSON.stringify({ question: text })
   })
   .then(r => r.json())
   .then(data => {
-    typing.style.display = "none";
-    lastAnswer = data.answer || "Sin respuesta";
-
-    add("🤖 " + lastAnswer +
-        `<div><button class="copy-btn" onclick="copyLast()">📋 Copiar</button></div>`,
-        "bot");
-
-    document.getElementById("feedback").style.display = "block";
-    resetStars();
+    typing.remove();
+    add("🤖 " + (data.answer || "Sin respuesta"), "bot");
   })
   .catch(err => {
-    typing.style.display = "none";
+    console.error(err);
+    typing.remove();
     add("❌ Error al consultar el servidor", "bot");
   });
-}
-
-function copyLast(){
-  navigator.clipboard.writeText(lastAnswer);
-  alert("Respuesta copiada");
 }
 
 input.addEventListener("keydown", e=>{
   if(e.key === "Enter") send();
 });
-
-/* ---------- Feedback ---------- */
-
-function rate(n){
-  rating = n;
-  const stars = document.querySelectorAll(".star");
-  stars.forEach((s,i)=>{
-    s.classList.toggle("selected", i < n);
-  });
-}
-
-function resetStars(){
-  rating = 0;
-  document.querySelectorAll(".star").forEach(s=>s.classList.remove("selected"));
-  document.getElementById("comment").value = "";
-}
-
-function sendFeedback(){
-  fetch("/feedback",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      question: lastQuestion,
-      answer: lastAnswer,
-      rating: rating,
-      comment: document.getElementById("comment").value
-    })
-  }).then(()=>{
-    alert("Gracias por tu feedback 🙌");
-    document.getElementById("feedback").style.display = "none";
-  });
-}
 </script>
 
 </body>
