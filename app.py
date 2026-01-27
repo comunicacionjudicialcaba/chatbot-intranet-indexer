@@ -68,43 +68,64 @@ def detectar_anio(texto):
 # ------------------------
 # DETECCIÓN DE PLENARIO
 # ------------------------
-
-def es_plenario(item):
+def tipo_plenario(item):
     titulo = (item.get("titulo","")).lower()
     texto = (item.get("texto","")).lower()
 
-    # debe mencionar sesión plenaria real
-    indicadores = [
+    # convocatoria (anuncio)
+    if (
+        "convocatoria" in titulo
+        or "se convoca" in texto
+        or "se realizará el plenario" in texto
+        or "se celebrará el plenario" in texto
+    ):
+        return "convocatoria"
+
+    # sesión real (crónica)
+    indicadores_sesion = [
         "sesión plenaria",
-        "plenario de",
-        "se celebró el plenario",
+        "plenario ordinario",
         "orden del día",
         "durante la sesión",
-        "plenario ordinario"
+        "se aprobaron",
+        "trataron los siguientes temas",
+        "se celebró el plenario"
     ]
 
-    if not any(k in texto or k in titulo for k in indicadores):
-        return False
+    if any(k in texto or k in titulo for k in indicadores_sesion):
+        return "sesion"
 
-    # excluir notas que no son sesiones
-    excluidos = [
-        "podcast",
-        "frecuencia judicial",
-        "cámara",
-        "museos",
-        "relatos del juicio",
-        "comité",
-        "jornada",
-        "charla",
-        "actividad",
-        "campaña"
+    return "otro"
+    
+def tipo_plenario(item):
+    titulo = (item.get("titulo","")).lower()
+    texto = (item.get("texto","")).lower()
+
+    # ---- CONVOCATORIA (anuncio previo) ----
+    if (
+        "convocatoria" in titulo
+        or "se convoca" in texto
+        or "se realizará el plenario" in texto
+        or "se celebrará el plenario" in texto
+    ):
+        return "convocatoria"
+
+    # ---- SESIÓN REAL (crónica del plenario) ----
+    indicadores_sesion = [
+        "sesión plenaria",
+        "plenario ordinario",
+        "orden del día",
+        "durante la sesión",
+        "se aprobaron",
+        "se trató el temario",
+        "se celebró el último plenario",
+        "se celebró el plenario"
     ]
 
-    if any(k in titulo for k in excluidos):
-        return False
+    if any(k in texto or k in titulo for k in indicadores_sesion):
+        return "sesion"
 
-    return True
-
+    return "otro"
 
 # ------------------------
 # SEMANTIC SEARCH (TEMAS)
