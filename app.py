@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, render_template
 import json
 import os
+import smtplib
+from email.message import EmailMessage
 from datetime import datetime
 import numpy as np
 from openai import OpenAI
@@ -221,6 +223,53 @@ def chat():
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
+        
+# ... TODO EL CÓDIGO DEL CHAT ...
+    return jsonify({"answer": answer})
+
+
+# NUEVO ENDPOINT: FEEDBACK
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    data = request.get_json()
+
+    question = data.get("question", "")
+    answer = data.get("answer", "")
+    rating = data.get("rating", "")
+    comment = data.get("comment", "")
+
+    body = f"""
+FEEDBACK CHATBOT INTRANET
+
+Pregunta:
+{question}
+
+Respuesta:
+{answer}
+
+Puntaje:
+{rating} / 5
+
+Comentario:
+{comment}
+"""
+
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = "FEEDBACK Chatbot Intranet"
+        msg["From"] = os.environ["SMTP_USER"]
+        msg["To"] = "comunicacionjudicialcaba@gmail.com"
+        msg.set_content(body)
+
+        with smtplib.SMTP(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"])) as server:
+            server.starttls()
+            server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+            server.send_message(msg)
+
+    except Exception as e:
+        print("❌ ERROR ENVIANDO FEEDBACK:", e)
+
+    return jsonify({"status": "ok"})
 
     # =========================================================
     # 🟣 MODO PLENARIO (SIN LLM PARA LISTADOS)
