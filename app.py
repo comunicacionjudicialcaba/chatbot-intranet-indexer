@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, render_template
 import json
 import os
 import smtplib
+import requests
 from email.message import EmailMessage
 from datetime import datetime
 import numpy as np
@@ -354,43 +355,22 @@ PREGUNTA:
 def feedback():
     data = request.get_json()
 
-    question = data.get("question", "")
-    answer = data.get("answer", "")
-    rating = data.get("rating", "")
-    comment = data.get("comment", "")
-
-    body = f"""
-FEEDBACK CHATBOT INTRANET
-
-Pregunta:
-{question}
-
-Respuesta:
-{answer}
-
-Puntaje:
-{rating} / 5
-
-Comentario:
-{comment}
-"""
+    payload = {
+        "entry.2141687049": data.get("question", ""),
+        "entry.461024130": data.get("answer", ""),
+        "entry.446421198": data.get("rating", ""),
+        "entry.2031885759": data.get("comment", ""),
+    }
 
     try:
-        msg = EmailMessage()
-        msg["Subject"] = "FEEDBACK Chatbot Intranet"
-        msg["From"] = os.environ["SMTP_USER"]
-        msg["To"] = "comunicacionjudicialcaba@gmail.com"
-        msg.set_content(body)
-
-        with smtplib.SMTP(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"])) as server:
-            server.starttls()
-            server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
-            server.send_message(msg)
+        r = requests.post(GOOGLE_FORM_URL, data=payload, timeout=10)
+        print("✅ Feedback enviado a Google Forms:", r.status_code)
 
     except Exception as e:
-        print("❌ ERROR ENVIANDO FEEDBACK:", e)
+        print("❌ Error enviando feedback:", e)
 
     return jsonify({"status": "ok"})
+
 
 
 # ------------------------
