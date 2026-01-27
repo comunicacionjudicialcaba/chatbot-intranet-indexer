@@ -70,13 +70,41 @@ def detectar_anio(texto):
 # ------------------------
 
 def es_plenario(item):
-    t = (item.get("titulo","") + " " + item.get("texto","")).lower()
-    return (
-        "plenario" in t
-        and "convocatoria" not in t
-        and "suspensión" not in t
-        and "suspension" not in t
-    )
+    titulo = (item.get("titulo","")).lower()
+    texto = (item.get("texto","")).lower()
+
+    # debe mencionar sesión plenaria real
+    indicadores = [
+        "sesión plenaria",
+        "plenario de",
+        "se celebró el plenario",
+        "orden del día",
+        "durante la sesión",
+        "plenario ordinario"
+    ]
+
+    if not any(k in texto or k in titulo for k in indicadores):
+        return False
+
+    # excluir notas que no son sesiones
+    excluidos = [
+        "podcast",
+        "frecuencia judicial",
+        "cámara",
+        "museos",
+        "relatos del juicio",
+        "comité",
+        "jornada",
+        "charla",
+        "actividad",
+        "campaña"
+    ]
+
+    if any(k in titulo for k in excluidos):
+        return False
+
+    return True
+
 
 # ------------------------
 # SEMANTIC SEARCH (TEMAS)
