@@ -1,101 +1,92 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chatbot Intranet</title>
+<meta charset="UTF-8" />
+<title>Chatbot Intranet</title>
 
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
+<style>
+body { font-family: Arial, sans-serif; margin:20px; background:#f7f7f7; }
+h2 { margin-top:0 }
 
-    h2 { margin-top: 30px; }
+#searchBox, #chatBox { background:#fff; padding:10px; border-radius:8px; margin-bottom:15px; }
 
-    #searchBox { margin-bottom: 15px; }
-    #results { border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: auto; }
+#results { max-height:220px; overflow:auto; border:1px solid #ccc; padding:8px; background:#fff; }
 
-    .result { margin-bottom: 10px; }
-    .result a { text-decoration: none; color: #0645ad; }
+#chat { border:1px solid #ccc; padding:10px; height:320px; overflow-y:auto; background:#fff; }
 
-    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; margin-top: 10px; }
+.user { color:#003; margin:8px 0; }
+.bot { color:#060; margin:8px 0; border-bottom:1px dashed #ddd; padding-bottom:8px; }
 
-    .user { color: #006; margin-top: 10px; }
-    .bot { color: #060; margin-top: 10px; }
+.bot button { font-size:12px; margin-right:6px; margin-top:5px }
 
-    .typing { font-style: italic; color: #999; }
+#typing { font-style:italic; color:#888; }
 
-    .feedback { margin-top: 8px; font-size: 14px; }
-    .stars span { cursor: pointer; font-size: 18px; }
+.star { cursor:pointer; font-size:18px; color:#ccc; }
+.star.selected { color:gold; }
 
-  </style>
+.feedbackBox { margin-top:6px; background:#f2f2f2; padding:6px; border-radius:6px }
+</style>
 </head>
+
 <body>
 
 <h2>🔍 Buscador de notas</h2>
 
 <div id="searchBox">
-  <input id="searchInput" type="text" placeholder="Buscar palabras..." style="width:50%" />
-
-  <select id="yearFilter">
-    <option value="">Todos los años</option>
-  </select>
-
+  <input id="searchText" placeholder="Buscar por palabra…" style="width:60%">
+  <select id="yearFilter"><option value="">Todos los años</option></select>
   <button onclick="runSearch()">Buscar</button>
+  <div id="results"></div>
 </div>
-
-<div id="results"></div>
-
-<hr>
 
 <h2>💬 Chat Intranet</h2>
 
-<div id="chat"></div>
+<div id="chatBox">
+  <div id="chat"></div>
+  <div id="typing" style="display:none;">🤖 Escribiendo…</div>
 
-<input id="msg" type="text" style="width:80%" placeholder="Escribí tu pregunta..." />
-<button onclick="send()">Enviar</button>
+  <input id="msg" style="width:75%" placeholder="Escribí tu pregunta…" />
+  <button onclick="send()">Enviar</button>
+</div>
 
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("msg");
+const typing = document.getElementById("typing");
 const resultsBox = document.getElementById("results");
 const yearFilter = document.getElementById("yearFilter");
 
-let DATA = [];
+let ALL_DATA = [];
 
-// --------------------
-// LOAD DATA FOR SEARCH
-// --------------------
-
+/* =======================
+   LOAD DATA + YEARS
+======================= */
 fetch("/data")
-  .then(r => r.json())
-  .then(data => {
-    DATA = data;
-    buildYearFilter();
-  });
-
-function buildYearFilter(){
-  const years = [...new Set(DATA.map(d => d.anio).filter(Boolean))].sort((a,b)=>b-a);
+.then(r=>r.json())
+.then(data=>{
+  ALL_DATA = data;
+  const years = [...new Set(data.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
   years.forEach(y=>{
-    const o = document.createElement("option");
-    o.value = y;
-    o.textContent = y;
-    yearFilter.appendChild(o);
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearFilter.appendChild(opt);
   });
-}
+});
 
-// --------------------
-// SEARCH
-// --------------------
-
+/* =======================
+   SEARCH
+======================= */
 function runSearch(){
-  const q = document.getElementById("searchInput").value.toLowerCase();
+  const q = document.getElementById("searchText").value.toLowerCase();
   const year = yearFilter.value;
 
   resultsBox.innerHTML = "";
 
-  let res = DATA.filter(d=>{
-    const text = ((d.titulo||"") + " " + (d.texto||"")).toLowerCase();
-    if(q && !text.includes(q)) return false;
-    if(year && String(d.anio) !== year) return false;
-    return true;
+  const res = ALL_DATA.filter(d=>{
+    if(year && String(d.anio)!==year) return false;
+    const text = (d.titulo + " " + d.texto).toLowerCase();
+    return q && text.includes(q);
   });
 
   if(!res.length){
@@ -103,82 +94,133 @@ function runSearch(){
     return;
   }
 
-  res.slice(0,100).forEach(d=>{
+  res.slice(0,50).forEach(d=>{
     const div = document.createElement("div");
-    div.className = "result";
     div.innerHTML = `
-      <b>${d.fecha || ""}</b> — ${d.titulo || ""}<br>
-      <a href="${d.url}" target="_blank">Ver nota</a>
+      <b>${d.titulo}</b><br>
+      ${d.fecha || ""}<br>
+      <a href="${d.url}" target="_blank">Abrir nota</a>
+      <hr>
     `;
     resultsBox.appendChild(div);
   });
 }
-// --------------------
-// COPY-PASTE
-// --------------------  
-function copyMessage(el){
-  // Clonar nodo para no modificar el original
-  const clone = el.cloneNode(true);
 
-  // Reemplazar links por "texto: URL"
-  const links = clone.querySelectorAll("a");
-  links.forEach(a=>{
-    const text = a.textContent;
-    const url = a.href;
-    a.replaceWith(`${text}: ${url}`);
-  });
-
-  const text = clone.innerText;
-
-  navigator.clipboard.writeText(text).then(()=>{
-    alert("Respuesta copiada");
-  });
-}
-
-  
-// --------------------
-// CHAT
-// --------------------
-
-function add(text, cls){
+/* =======================
+   CHAT UI
+======================= */
+function addUser(text){
   const d = document.createElement("div");
-  d.className = cls;
-  d.innerHTML = text;
+  d.className="user";
+  d.textContent="👤 "+text;
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
 }
 
+function addBot(html, question){
+  const wrap = document.createElement("div");
+  wrap.className="bot";
+
+  const content = document.createElement("div");
+  content.innerHTML="🤖 "+html;
+
+  const copyBtn = document.createElement("button");
+  copyBtn.textContent="📋 Copiar";
+  copyBtn.onclick=()=>copyFormatted(content);
+
+  const fbBox = buildFeedback(question, content.innerText);
+
+  wrap.appendChild(content);
+  wrap.appendChild(copyBtn);
+  wrap.appendChild(fbBox);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+/* =======================
+   COPY CLEAN TEXT
+======================= */
+function copyFormatted(el){
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll("a").forEach(a=>{
+    a.replaceWith(`${a.textContent}: ${a.href}`);
+  });
+  const txt = clone.innerText.replace(/^🤖 /,"").trim();
+  navigator.clipboard.writeText(txt).then(()=>alert("Copiado"));
+}
+
+/* =======================
+   FEEDBACK UI + SEND
+======================= */
+function buildFeedback(question, answer){
+  const box = document.createElement("div");
+  box.className="feedbackBox";
+
+  let rating = 0;
+
+  const stars = document.createElement("div");
+  for(let i=1;i<=5;i++){
+    const s=document.createElement("span");
+    s.textContent="★";
+    s.className="star";
+    s.onclick=()=>{
+      rating=i;
+      stars.querySelectorAll(".star").forEach((x,j)=>{
+        x.classList.toggle("selected", j<i);
+      });
+    };
+    stars.appendChild(s);
+  }
+
+  const txt = document.createElement("textarea");
+  txt.placeholder="Comentario (opcional)";
+  txt.style.width="100%";
+
+  const btn = document.createElement("button");
+  btn.textContent="Enviar feedback";
+  btn.onclick=()=>{
+    fetch("/feedback",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({
+        question, answer, rating, comment:txt.value
+      })
+    }).then(()=>btn.textContent="Gracias 🙌");
+  };
+
+  box.append("Valoración: ",stars,document.createElement("br"),txt,btn);
+  return box;
+}
+
+/* =======================
+   CHAT BACKEND
+======================= */
 function send(){
-  const text = input.value.trim();
+  const text=input.value.trim();
   if(!text) return;
 
-  add("👤 " + text, "user");
-  input.value = "";
-
-  const typing = document.createElement("div");
-  typing.className = "typing";
-  typing.textContent = "🤖 escribiendo...";
-  chat.appendChild(typing);
+  addUser(text);
+  input.value="";
+  typing.style.display="block";
 
   fetch("/chat",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ question: text })
+    body:JSON.stringify({question:text})
   })
-  .then(r => r.json())
-  .then(data => {
-    typing.remove();
-    add("🤖 " + (data.answer || "Sin respuesta"), "bot");
+  .then(r=>r.json())
+  .then(d=>{
+    typing.style.display="none";
+    addBot(d.answer||"Sin respuesta", text);
   })
-  .catch(err => {
-    console.error(err);
-    typing.remove();
-    add("❌ Error al consultar el servidor", "bot");
+  .catch(()=>{
+    typing.style.display="none";
+    addBot("❌ Error de servidor", text);
   });
 }
 
-input.addEventListener("keydown", e=>{
-  if(e.key === "Enter") send();
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter") send();
 });
 </script>
 
