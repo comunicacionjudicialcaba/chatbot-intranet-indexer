@@ -215,6 +215,11 @@ FORMATO:
 @app.route("/")
 def home():
     return render_template("index.html")
+    
+    # 👉 ESTO ES PARA EL BUSCADOR WEB
+@app.route("/data")
+def data():
+    return jsonify(DATA)
 
 
 # =========================================================
