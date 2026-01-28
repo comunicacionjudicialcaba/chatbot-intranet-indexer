@@ -259,6 +259,7 @@ def chat():
 
         plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
+        # ---- LISTADO ----
         if "cuales" in q_norm:
             if not plenarios:
                 return jsonify({"answer": "No se registran plenarios para el período solicitado."})
@@ -271,17 +272,20 @@ def chat():
                 )
             return jsonify({"answer": "<br>".join(out)})
 
+        # ---- CUÁNTOS ----
         if "cuantos" in q_norm:
             if anio_pedido:
                 return jsonify({"answer": f"Durante {anio_pedido} se registran {len(plenarios)} plenarios."})
             return jsonify({"answer": f"Se registran {len(plenarios)} plenarios en los textos disponibles."})
 
+        # ---- ÚLTIMO ----
         if "ultimo" in q_norm:
             plenarios = plenarios[:1]
 
         if not plenarios:
             return jsonify({"answer": "No encontré plenarios para el período solicitado."})
 
+        # ---- DETALLE ----
         doc = plenarios[0]
 
         prompt = f"""
@@ -302,6 +306,15 @@ PREGUNTA:
         )
 
         answer = completion.choices[0].message.content
+
+        # ✅ AGREGAR LINK GARANTIZADO DESDE BACKEND
+        url = doc.get("url")
+        if url:
+            answer += (
+                "<br><br><b>🔗 Nota completa:</b><br>"
+                f'<a href="{url}" target="_blank">Ver nota del plenario</a>'
+            )
+
         return jsonify({"answer": answer})
 
     # =========================================================
@@ -364,6 +377,7 @@ PREGUNTA:
 
     answer = completion.choices[0].message.content
 
+    # 👉 Leyenda para normativa
     if modo_normativa:
         answer += (
             "<br><br><b>ℹ️ Para búsquedas normativas usá el buscador oficial:</b><br>"
