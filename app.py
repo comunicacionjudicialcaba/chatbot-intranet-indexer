@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request, render_template
 import json
 import os
 import requests
-from datetime import datetime
 import numpy as np
 from openai import OpenAI
 from collections import defaultdict
@@ -103,6 +102,16 @@ def tipo_plenario(item):
     return "otro"
 
 # ------------------------
+# DETECCIÓN PERSONA
+# ------------------------
+
+def es_busqueda_persona(q):
+    palabras = q.strip().split()
+    if len(palabras) > 6:
+        return False
+    return any(p[:1].isupper() for p in palabras)
+
+# ------------------------
 # SEMANTIC SEARCH (RAG)
 # ------------------------
 
@@ -158,7 +167,7 @@ Respondés únicamente con la información incluida en los textos provistos.
 REGLAS:
 - No inventes datos.
 - Si algo no aparece en los textos, decí: "No se menciona en los textos".
-- No infieras por el título: usá principalmente el contenido del texto.
+- Usá principalmente el contenido del texto, pero podés complementar con el título si la persona o el tema aparece identificado allí.
 
 SI LA PREGUNTA ES TEMÁTICA:
 - Podés usar varios textos.
@@ -207,7 +216,7 @@ def chat():
         return jsonify({"answer": "No recibí la pregunta."})
 
     # =========================================================
-    # 🟣 MODO PLENARIO (SIN RAG)
+    # 🟣 MODO PLENARIO
     # =========================================================
 
     if "plenario" in q_lower:
@@ -276,33 +285,48 @@ PREGUNTA:
         return jsonify({"answer": answer})
 
     # =========================================================
-    # 🟢 MODO TEMÁTICO (RAG)
+    # 🔵 MODO PERSONA / TEMÁTICO (RAG)
     # =========================================================
+
+    modo_persona = es_busqueda_persona(question)
 
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
         input=question
     ).data[0].embedding
 
-    chunks, scores = semantic_search(np.array(q_emb), top_k=60)
+    chunks, scores = semantic_search(np.array(q_emb), top_k=80)
 
-    KEYWORDS = ["frecuencia judicial", "mia", "lenguaje claro", "salud", "uma", "obra social", "paritaria", "fachada"]
+    # 🔴 solo filtrar textos cortos si NO es persona
+    if not modo_persona:
+        chunks = [c for c in chunks if len(c.get("texto","")) > 250]
 
-    def keyword_score(c):
-        t = (c.get("titulo","") + " " + c.get("texto","")).lower()
-        return sum(2 for k in KEYWORDS if k in t and k in q_lower)
-
-    chunks = sorted(chunks, key=lambda c: keyword_score(c), reverse=True)
-    chunks = [c for c in chunks if len(c.get("texto","")) > 300]
-
-    docs = group_chunks_by_url(chunks)[:6]
+    docs = group_chunks_by_url(chunks)[:8]
 
     if not docs:
         return jsonify({"answer": "No encontré información relacionada con tu consulta."})
 
     context = build_context(docs)
 
-    prompt = f"""
+    # ---- PROMPT PERSONA ----
+    if modo_persona:
+        prompt = f"""
+TEXTOS:
+{context}
+
+PREGUNTA:
+Listá todas las notas donde se menciona a la persona consultada.
+Para cada una indicá:
+- Título
+- Fecha
+- En qué contexto aparece
+- Link
+
+Persona: {question}
+"""
+    # ---- PROMPT TEMÁTICO ----
+    else:
+        prompt = f"""
 TEXTOS:
 {context}
 
@@ -321,7 +345,6 @@ PREGUNTA:
 
     answer = completion.choices[0].message.content
     return jsonify({"answer": answer})
-
 
 # =========================================================
 # ✉ FEEDBACK
@@ -345,7 +368,6 @@ def feedback():
         print("❌ Error enviando feedback:", e)
 
     return jsonify({"status": "ok"})
-
 
 # ------------------------
 # RUN
