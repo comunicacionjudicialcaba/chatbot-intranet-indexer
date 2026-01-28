@@ -31,6 +31,7 @@ h2{ margin:0 0 8px 0; font-size:18px }
   box-shadow:0 6px 18px rgba(0,0,0,.06);
   display:flex;
   flex-direction:column;
+  height:100%;
 }
 
 /* -------- SEARCH -------- */
@@ -42,6 +43,7 @@ h2{ margin:0 0 8px 0; font-size:18px }
   border-top:1px solid #eee;
   padding-top:8px;
 }
+
 
 .resultItem{
   margin-bottom:10px;
@@ -208,11 +210,18 @@ function runSearch(){
   const year=yearFilter.value;
   resultsBox.innerHTML="";
 
-  const res=ALL_DATA.filter(d=>{
-    if(year && String(d.anio)!==year) return false;
-    const t=(d.titulo+" "+d.texto).toLowerCase();
-    return q && t.includes(q);
-  });
+let res = ALL_DATA.filter(d=>{
+  if(year && String(d.anio)!==year) return false;
+  const t=(d.titulo+" "+d.texto).toLowerCase();
+  return q && t.includes(q);
+});
+
+/* ordenar por fecha más reciente */
+res.sort((a,b)=>{
+  if(!a.fecha_iso || !b.fecha_iso) return 0;
+  return b.fecha_iso.localeCompare(a.fecha_iso);
+});
+
 
   if(!res.length){
     resultsBox.innerHTML="<i>No hay resultados</i>";
