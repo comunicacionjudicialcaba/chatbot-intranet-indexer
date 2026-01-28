@@ -5,48 +5,179 @@
 <title>Chatbot Intranet</title>
 
 <style>
-body { font-family: Arial, sans-serif; margin:20px; background:#f7f7f7; }
-h2 { margin-top:0 }
+body{
+  margin:0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background:#f2f4f8;
+}
 
-#searchBox, #chatBox { background:#fff; padding:10px; border-radius:8px; margin-bottom:15px; }
+h2{ margin:0 0 8px 0; font-size:18px }
 
-#results { max-height:220px; overflow:auto; border:1px solid #ccc; padding:8px; background:#fff; }
+#layout{
+  display:grid;
+  grid-template-columns: 38% 62%;
+  gap:15px;
+  padding:15px;
+  height:100vh;
+  box-sizing:border-box;
+}
 
-#chat { border:1px solid #ccc; padding:10px; height:320px; overflow-y:auto; background:#fff; }
+/* -------- PANELS -------- */
 
-.user { color:#003; margin:8px 0; }
-.bot { color:#060; margin:8px 0; border-bottom:1px dashed #ddd; padding-bottom:8px; }
+.panel{
+  background:#fff;
+  border-radius:14px;
+  padding:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+  display:flex;
+  flex-direction:column;
+}
 
-.bot button { font-size:12px; margin-right:6px; margin-top:5px }
+/* -------- SEARCH -------- */
 
-#typing { font-style:italic; color:#888; }
+#results{
+  margin-top:10px;
+  overflow:auto;
+  flex:1;
+  border-top:1px solid #eee;
+  padding-top:8px;
+}
 
-.star { cursor:pointer; font-size:18px; color:#ccc; }
-.star.selected { color:gold; }
+.resultItem{
+  margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:1px dashed #ddd;
+}
 
-.feedbackBox { margin-top:6px; background:#f2f2f2; padding:6px; border-radius:6px }
+/* -------- CHAT -------- */
+
+#chat{
+  flex:1;
+  overflow:auto;
+  padding:10px;
+  background:#f7f9fc;
+  border-radius:10px;
+}
+
+.msg{
+  display:flex;
+  margin:10px 0;
+  align-items:flex-start;
+}
+
+.msg.user{ justify-content:flex-end; }
+
+.bubble{
+  max-width:70%;
+  padding:10px 12px;
+  border-radius:14px;
+  line-height:1.35;
+  font-size:14px;
+}
+
+.user .bubble{
+  background:#dbe8ff;
+  border-bottom-right-radius:4px;
+}
+
+.bot .bubble{
+  background:#ffffff;
+  border-bottom-left-radius:4px;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+
+.avatar{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  background:#ccc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  margin:0 8px;
+}
+
+.user .avatar{ background:#4a7cff; color:white }
+.bot .avatar{ background:#00a6a6; color:white }
+
+.botActions{
+  margin-top:6px;
+}
+
+.botActions button{
+  font-size:12px;
+  margin-right:6px;
+}
+
+/* -------- INPUT -------- */
+
+#typing{
+  font-style:italic;
+  color:#888;
+  padding:5px 10px;
+}
+
+#inputRow{
+  display:flex;
+  gap:8px;
+  margin-top:8px;
+}
+
+/* -------- FEEDBACK -------- */
+
+.star{ cursor:pointer; font-size:18px; color:#ccc }
+.star.selected{ color:gold }
+
+.feedbackBox{
+  margin-top:6px;
+  background:#f1f3f8;
+  padding:6px;
+  border-radius:8px;
+}
+
+/* -------- MOBILE -------- */
+
+@media(max-width:900px){
+  #layout{ grid-template-columns:1fr; height:auto }
+}
 </style>
 </head>
 
 <body>
 
+<div id="layout">
+
+<!-- ================= SEARCH ================= -->
+<div class="panel">
+
 <h2>🔍 Buscador de notas</h2>
 
-<div id="searchBox">
+<div>
   <input id="searchText" placeholder="Buscar por palabra…" style="width:60%">
   <select id="yearFilter"><option value="">Todos los años</option></select>
   <button onclick="runSearch()">Buscar</button>
-  <div id="results"></div>
 </div>
+
+<div id="results"></div>
+
+</div>
+
+<!-- ================= CHAT ================= -->
+<div class="panel">
 
 <h2>💬 Chat Intranet</h2>
 
-<div id="chatBox">
-  <div id="chat"></div>
-  <div id="typing" style="display:none;">🤖 Escribiendo…</div>
+<div id="chat"></div>
+<div id="typing" style="display:none;">🤖 Escribiendo…</div>
 
-  <input id="msg" style="width:75%" placeholder="Escribí tu pregunta…" />
+<div id="inputRow">
+  <input id="msg" style="flex:1" placeholder="Escribí tu pregunta…" />
   <button onclick="send()">Enviar</button>
+</div>
+
+</div>
+
 </div>
 
 <script>
@@ -58,107 +189,108 @@ const yearFilter = document.getElementById("yearFilter");
 
 let ALL_DATA = [];
 
-/* =======================
-   LOAD DATA + YEARS
-======================= */
+/* ===== LOAD DATA ===== */
 fetch("/data")
 .then(r=>r.json())
 .then(data=>{
-  ALL_DATA = data;
-  const years = [...new Set(data.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
+  ALL_DATA=data;
+  const years=[...new Set(data.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
   years.forEach(y=>{
-    const opt = document.createElement("option");
-    opt.value = y;
-    opt.textContent = y;
-    yearFilter.appendChild(opt);
+    const o=document.createElement("option");
+    o.value=y; o.textContent=y;
+    yearFilter.appendChild(o);
   });
 });
 
-/* =======================
-   SEARCH
-======================= */
+/* ===== SEARCH ===== */
 function runSearch(){
-  const q = document.getElementById("searchText").value.toLowerCase();
-  const year = yearFilter.value;
+  const q=document.getElementById("searchText").value.toLowerCase();
+  const year=yearFilter.value;
+  resultsBox.innerHTML="";
 
-  resultsBox.innerHTML = "";
-
-  const res = ALL_DATA.filter(d=>{
+  const res=ALL_DATA.filter(d=>{
     if(year && String(d.anio)!==year) return false;
-    const text = (d.titulo + " " + d.texto).toLowerCase();
-    return q && text.includes(q);
+    const t=(d.titulo+" "+d.texto).toLowerCase();
+    return q && t.includes(q);
   });
 
   if(!res.length){
-    resultsBox.innerHTML = "<i>No hay resultados</i>";
+    resultsBox.innerHTML="<i>No hay resultados</i>";
     return;
   }
 
   res.slice(0,50).forEach(d=>{
-    const div = document.createElement("div");
-    div.innerHTML = `
+    const div=document.createElement("div");
+    div.className="resultItem";
+    div.innerHTML=`
       <b>${d.titulo}</b><br>
-      ${d.fecha || ""}<br>
+      ${d.fecha||""}<br>
       <a href="${d.url}" target="_blank">Abrir nota</a>
-      <hr>
     `;
     resultsBox.appendChild(div);
   });
 }
 
-/* =======================
-   CHAT UI
-======================= */
+/* ===== CHAT UI ===== */
 function addUser(text){
-  const d = document.createElement("div");
-  d.className="user";
-  d.textContent="👤 "+text;
-  chat.appendChild(d);
-  chat.scrollTop = chat.scrollHeight;
+  const row=document.createElement("div");
+  row.className="msg user";
+  row.innerHTML=`
+    <div class="bubble">${text}</div>
+    <div class="avatar">👤</div>
+  `;
+  chat.appendChild(row);
+  chat.scrollTop=chat.scrollHeight;
 }
 
 function addBot(html, question){
-  const wrap = document.createElement("div");
-  wrap.className="bot";
+  const row=document.createElement("div");
+  row.className="msg bot";
 
-  const content = document.createElement("div");
-  content.innerHTML="🤖 "+html;
+  const bubble=document.createElement("div");
+  bubble.className="bubble";
+  bubble.innerHTML=html;
 
-  const copyBtn = document.createElement("button");
+  const actions=document.createElement("div");
+  actions.className="botActions";
+
+  const copyBtn=document.createElement("button");
   copyBtn.textContent="📋 Copiar";
-  copyBtn.onclick=()=>copyFormatted(content);
+  copyBtn.onclick=()=>copyFormatted(bubble);
 
-  const fbBox = buildFeedback(question, content.innerText);
+  const fb=buildFeedback(question, bubble.innerText);
 
-  wrap.appendChild(content);
-  wrap.appendChild(copyBtn);
-  wrap.appendChild(fbBox);
-  chat.appendChild(wrap);
-  chat.scrollTop = chat.scrollHeight;
+  actions.appendChild(copyBtn);
+  actions.appendChild(fb);
+
+  const wrap=document.createElement("div");
+  wrap.appendChild(bubble);
+  wrap.appendChild(actions);
+
+  row.innerHTML=`<div class="avatar">🤖</div>`;
+  row.appendChild(wrap);
+
+  chat.appendChild(row);
+  chat.scrollTop=chat.scrollHeight;
 }
 
-/* =======================
-   COPY CLEAN TEXT
-======================= */
+/* ===== COPY ===== */
 function copyFormatted(el){
-  const clone = el.cloneNode(true);
-  clone.querySelectorAll("a").forEach(a=>{
+  const c=el.cloneNode(true);
+  c.querySelectorAll("a").forEach(a=>{
     a.replaceWith(`${a.textContent}: ${a.href}`);
   });
-  const txt = clone.innerText.replace(/^🤖 /,"").trim();
-  navigator.clipboard.writeText(txt).then(()=>alert("Copiado"));
+  navigator.clipboard.writeText(c.innerText).then(()=>alert("Copiado"));
 }
 
-/* =======================
-   FEEDBACK UI + SEND
-======================= */
+/* ===== FEEDBACK ===== */
 function buildFeedback(question, answer){
-  const box = document.createElement("div");
+  const box=document.createElement("div");
   box.className="feedbackBox";
 
-  let rating = 0;
+  let rating=0;
+  const stars=document.createElement("div");
 
-  const stars = document.createElement("div");
   for(let i=1;i<=5;i++){
     const s=document.createElement("span");
     s.textContent="★";
@@ -172,19 +304,17 @@ function buildFeedback(question, answer){
     stars.appendChild(s);
   }
 
-  const txt = document.createElement("textarea");
+  const txt=document.createElement("textarea");
   txt.placeholder="Comentario (opcional)";
   txt.style.width="100%";
 
-  const btn = document.createElement("button");
+  const btn=document.createElement("button");
   btn.textContent="Enviar feedback";
   btn.onclick=()=>{
     fetch("/feedback",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        question, answer, rating, comment:txt.value
-      })
+      body:JSON.stringify({question,answer,rating,comment:txt.value})
     }).then(()=>btn.textContent="Gracias 🙌");
   };
 
@@ -192,9 +322,7 @@ function buildFeedback(question, answer){
   return box;
 }
 
-/* =======================
-   CHAT BACKEND
-======================= */
+/* ===== CHAT BACKEND ===== */
 function send(){
   const text=input.value.trim();
   if(!text) return;
