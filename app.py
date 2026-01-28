@@ -5,6 +5,7 @@ import requests
 import numpy as np
 from openai import OpenAI
 from collections import defaultdict
+import re
 
 GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 
@@ -75,7 +76,6 @@ def tipo_plenario(item):
     titulo = (item.get("titulo","")).lower()
     texto = (item.get("texto","")).lower()
 
-    # ---- CONVOCATORIA ----
     if (
         "convocatoria" in titulo
         or "se convoca" in texto
@@ -84,7 +84,6 @@ def tipo_plenario(item):
     ):
         return "convocatoria"
 
-    # ---- SESIÓN REAL ----
     indicadores_sesion = [
         "sesión plenaria",
         "plenario ordinario",
@@ -102,14 +101,23 @@ def tipo_plenario(item):
     return "otro"
 
 # ------------------------
-# DETECCIÓN PERSONA
+# DETECCIÓN PERSONA / ÁREA
 # ------------------------
+
+CARGO_KEYWORDS = [
+    "secretaría", "secretaria", "dirección", "direccion", "oficina", "programa",
+    "departamento", "coordinación", "coordinacion", "unidad", "gerencia", "área", "area"
+]
+
+def es_busqueda_area(q):
+    ql = q.lower()
+    return any(k in ql for k in CARGO_KEYWORDS)
 
 def es_busqueda_persona(q):
     palabras = q.strip().split()
-    if len(palabras) > 6:
+    if len(palabras) > 7:
         return False
-    return any(p[:1].isupper() for p in palabras)
+    return sum(1 for p in palabras if p[:1].isupper()) >= 1
 
 # ------------------------
 # SEMANTIC SEARCH (RAG)
@@ -167,20 +175,20 @@ Respondés únicamente con la información incluida en los textos provistos.
 REGLAS:
 - No inventes datos.
 - Si algo no aparece en los textos, decí: "No se menciona en los textos".
-- Usá principalmente el contenido del texto, pero podés complementar con el título si la persona o el tema aparece identificado allí.
+- Podés usar título y texto para identificar personas, áreas y eventos.
 
-SI LA PREGUNTA ES TEMÁTICA:
+SI LA CONSULTA ES POR PERSONA O ÁREA:
+- Listá todas las notas relevantes.
+- Indicá en qué contexto aparece.
+- Incluí links.
+
+SI LA CONSULTA ES TEMÁTICA:
 - Podés usar varios textos.
-- Listá las notas relevantes.
-- Para cada una:
-  • Título
-  • Breve descripción
-  • Link:
-    <a href="URL" target="_blank">Ver nota</a>
+- Para cada uno: título, breve descripción y link.
 
-SI LA PREGUNTA ES SOBRE UN EVENTO:
+SI LA CONSULTA ES SOBRE UN EVENTO:
 - Usá un solo texto.
-- Enumerá todos los puntos tratados.
+- Enumerá los puntos tratados.
 
 FORMATO:
 - Usá listas cuando corresponda.
@@ -195,7 +203,6 @@ FORMATO:
 def home():
     return render_template("index.html")
 
-# 👉 BUSCADOR WEB
 @app.route("/data")
 def data():
     return jsonify(DATA)
@@ -234,9 +241,7 @@ def chat():
 
         plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
-        # ---- LISTADO ----
-        if "cuáles" in q_lower or "cuales" in q_lower or "qué plenarios" in q_lower:
-
+        if "cuáles" in q_lower or "cuales" in q_lower:
             if not plenarios:
                 return jsonify({"answer": "No se registran plenarios para el período solicitado."})
 
@@ -248,20 +253,17 @@ def chat():
                 )
             return jsonify({"answer": "<br>".join(out)})
 
-        # ---- CUÁNTOS ----
         if "cuántos" in q_lower or "cuantos" in q_lower:
             if anio_pedido:
                 return jsonify({"answer": f"Durante {anio_pedido} se registran {len(plenarios)} plenarios."})
             return jsonify({"answer": f"Se registran {len(plenarios)} plenarios en los textos disponibles."})
 
-        # ---- ÚLTIMO ----
         if "último" in q_lower or "ultimo" in q_lower:
             plenarios = plenarios[:1]
 
         if not plenarios:
             return jsonify({"answer": "No encontré plenarios para el período solicitado."})
 
-        # ---- DETALLE ----
         doc = plenarios[0]
 
         prompt = f"""
@@ -285,46 +287,45 @@ PREGUNTA:
         return jsonify({"answer": answer})
 
     # =========================================================
-    # 🔵 MODO PERSONA / TEMÁTICO (RAG)
+    # 🔵 PERSONA / ÁREA / TEMÁTICO (RAG)
     # =========================================================
 
     modo_persona = es_busqueda_persona(question)
+    modo_area = es_busqueda_area(question)
 
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
         input=question
     ).data[0].embedding
 
-    chunks, scores = semantic_search(np.array(q_emb), top_k=80)
+    chunks, scores = semantic_search(np.array(q_emb), top_k=100)
 
-    # 🔴 solo filtrar textos cortos si NO es persona
-    if not modo_persona:
+    if not (modo_persona or modo_area):
         chunks = [c for c in chunks if len(c.get("texto","")) > 250]
 
-    docs = group_chunks_by_url(chunks)[:8]
+    docs = group_chunks_by_url(chunks)[:10]
 
     if not docs:
         return jsonify({"answer": "No encontré información relacionada con tu consulta."})
 
     context = build_context(docs)
 
-    # ---- PROMPT PERSONA ----
-    if modo_persona:
+    # ---- PROMPT PERSONA / ÁREA ----
+    if modo_persona or modo_area:
         prompt = f"""
 TEXTOS:
 {context}
 
 PREGUNTA:
-Listá todas las notas donde se menciona a la persona consultada.
+Listá todas las notas relevantes relacionadas con la consulta.
 Para cada una indicá:
 - Título
 - Fecha
-- En qué contexto aparece
+- En qué contexto aparece la persona o el área
 - Link
 
-Persona: {question}
+Consulta: {question}
 """
-    # ---- PROMPT TEMÁTICO ----
     else:
         prompt = f"""
 TEXTOS:
