@@ -7,12 +7,11 @@
 <style>
 body{
   margin:0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background:#f2f4f8;
+  font-family:Arial, sans-serif;
+  background:#f2f4f7;
 }
 
-h2{ margin:0 0 8px 0; font-size:18px }
-
+/* ===== LAYOUT ===== */
 #layout{
   display:grid;
   grid-template-columns: 38% 62%;
@@ -22,8 +21,6 @@ h2{ margin:0 0 8px 0; font-size:18px }
   box-sizing:border-box;
 }
 
-/* -------- PANELS -------- */
-
 .panel{
   background:#fff;
   border-radius:14px;
@@ -31,117 +28,54 @@ h2{ margin:0 0 8px 0; font-size:18px }
   box-shadow:0 6px 18px rgba(0,0,0,.06);
   display:flex;
   flex-direction:column;
-  height:100%;
+  min-height:0; /* CLAVE PARA SCROLL */
 }
 
-/* -------- SEARCH -------- */
+/* ===== BUSCADOR ===== */
+#searchBox input, #searchBox select{
+  padding:6px;
+  margin-right:4px;
+}
 
 #results{
   margin-top:10px;
-  overflow:auto;
+  overflow-y:auto;
   flex:1;
   border-top:1px solid #eee;
   padding-top:8px;
 }
 
-
-.resultItem{
-  margin-bottom:10px;
-  padding-bottom:8px;
-  border-bottom:1px dashed #ddd;
+mark{
+  background:#ffe08a;
+  padding:0 2px;
 }
 
-/* -------- CHAT -------- */
-
+/* ===== CHAT ===== */
 #chat{
   flex:1;
-  overflow:auto;
+  border:1px solid #ccc;
   padding:10px;
-  background:#f7f9fc;
-  border-radius:10px;
+  overflow-y:auto;
+  background:#fff;
+  border-radius:8px;
 }
 
-.msg{
-  display:flex;
-  margin:10px 0;
-  align-items:flex-start;
-}
+.user{ color:#003; margin:8px 0; }
+.bot{ color:#060; margin:8px 0; border-bottom:1px dashed #ddd; padding-bottom:8px }
 
-.msg.user{ justify-content:flex-end; }
+#typing{ font-style:italic; color:#888; }
 
-.bubble{
-  max-width:70%;
-  padding:10px 12px;
-  border-radius:14px;
-  line-height:1.35;
-  font-size:14px;
-}
+.bot button{ font-size:12px; margin-right:6px; margin-top:5px }
 
-.user .bubble{
-  background:#dbe8ff;
-  border-bottom-right-radius:4px;
-}
-
-.bot .bubble{
-  background:#ffffff;
-  border-bottom-left-radius:4px;
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
-}
-
-.avatar{
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  background:#ccc;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:18px;
-  margin:0 8px;
-}
-
-.user .avatar{ background:#4a7cff; color:white }
-.bot .avatar{ background:#00a6a6; color:white }
-
-.botActions{
-  margin-top:6px;
-}
-
-.botActions button{
-  font-size:12px;
-  margin-right:6px;
-}
-
-/* -------- INPUT -------- */
-
-#typing{
-  font-style:italic;
-  color:#888;
-  padding:5px 10px;
-}
-
-#inputRow{
-  display:flex;
-  gap:8px;
-  margin-top:8px;
-}
-
-/* -------- FEEDBACK -------- */
-
+/* ===== FEEDBACK ===== */
 .star{ cursor:pointer; font-size:18px; color:#ccc }
 .star.selected{ color:gold }
 
 .feedbackBox{
   margin-top:6px;
-  background:#f1f3f8;
+  background:#f2f2f2;
   padding:6px;
-  border-radius:8px;
-}
-
-/* -------- MOBILE -------- */
-
-@media(max-width:900px){
-  #layout{ grid-template-columns:1fr; height:auto }
+  border-radius:6px
 }
 </style>
 </head>
@@ -150,35 +84,35 @@ h2{ margin:0 0 8px 0; font-size:18px }
 
 <div id="layout">
 
-<!-- ================= SEARCH ================= -->
-<div class="panel">
+  <!-- ================= BUSCADOR ================= -->
+  <div class="panel">
 
-<h2>🔍 Buscador de notas</h2>
+    <h3>🔍 Buscador de notas</h3>
 
-<div>
-  <input id="searchText" placeholder="Buscar por palabra…" style="width:60%">
-  <select id="yearFilter"><option value="">Todos los años</option></select>
-  <button onclick="runSearch()">Buscar</button>
-</div>
+    <div id="searchBox">
+      <input id="searchText" placeholder="Buscar por palabra…" style="width:55%">
+      <select id="yearFilter"><option value="">Todos los años</option></select>
+      <button onclick="runSearch()">Buscar</button>
+    </div>
 
-<div id="results"></div>
+    <div id="results"></div>
 
-</div>
+  </div>
 
-<!-- ================= CHAT ================= -->
-<div class="panel">
+  <!-- ================= CHAT ================= -->
+  <div class="panel">
 
-<h2>💬 Chat Intranet</h2>
+    <h3>💬 Chat Intranet</h3>
 
-<div id="chat"></div>
-<div id="typing" style="display:none;">🤖 Escribiendo…</div>
+    <div id="chat"></div>
+    <div id="typing" style="display:none;">🤖 Escribiendo…</div>
 
-<div id="inputRow">
-  <input id="msg" style="flex:1" placeholder="Escribí tu pregunta…" />
-  <button onclick="send()">Enviar</button>
-</div>
+    <div style="margin-top:8px">
+      <input id="msg" style="width:78%" placeholder="Escribí tu pregunta…" />
+      <button onclick="send()">Enviar</button>
+    </div>
 
-</div>
+  </div>
 
 </div>
 
@@ -191,115 +125,123 @@ const yearFilter = document.getElementById("yearFilter");
 
 let ALL_DATA = [];
 
-/* ===== LOAD DATA ===== */
+/* ================= LOAD DATA ================= */
 fetch("/data")
 .then(r=>r.json())
 .then(data=>{
-  ALL_DATA=data;
-  const years=[...new Set(data.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
+  ALL_DATA = data;
+  const years = [...new Set(data.map(d=>d.anio).filter(Boolean))].sort((a,b)=>b-a);
   years.forEach(y=>{
-    const o=document.createElement("option");
-    o.value=y; o.textContent=y;
-    yearFilter.appendChild(o);
+    const opt=document.createElement("option");
+    opt.value=y;
+    opt.textContent=y;
+    yearFilter.appendChild(opt);
   });
 });
 
-/* ===== SEARCH ===== */
+/* ================= HELPERS ================= */
+function previewText(txt){
+  if(!txt) return "";
+  return txt.replace(/\s+/g," ").slice(0,220)+"...";
+}
+
+function highlight(text,q){
+  if(!q) return text;
+  const re=new RegExp(`(${q})`,"gi");
+  return text.replace(re,"<mark>$1</mark>");
+}
+
+/* ================= SEARCH ================= */
 function runSearch(){
-  const q=document.getElementById("searchText").value.toLowerCase();
+  const q=document.getElementById("searchText").value.toLowerCase().trim();
   const year=yearFilter.value;
   resultsBox.innerHTML="";
 
-let res = ALL_DATA.filter(d=>{
-  if(year && String(d.anio)!==year) return false;
-  const t=(d.titulo+" "+d.texto).toLowerCase();
-  return q && t.includes(q);
-});
+  if(!q){
+    resultsBox.innerHTML="<i>Escribí una palabra para buscar</i>";
+    return;
+  }
 
-/* ordenar por fecha más reciente */
-res.sort((a,b)=>{
-  if(!a.fecha_iso || !b.fecha_iso) return 0;
-  return b.fecha_iso.localeCompare(a.fecha_iso);
-});
+  let res=ALL_DATA.filter(d=>{
+    if(year && String(d.anio)!==year) return false;
+    const text=(d.titulo+" "+d.texto).toLowerCase();
+    return text.includes(q);
+  });
 
+  res.sort((a,b)=>{
+    if(!a.fecha_iso || !b.fecha_iso) return 0;
+    return b.fecha_iso.localeCompare(a.fecha_iso);
+  });
 
   if(!res.length){
     resultsBox.innerHTML="<i>No hay resultados</i>";
     return;
   }
 
-  res.slice(0,50).forEach(d=>{
+  res.slice(0,80).forEach(d=>{
     const div=document.createElement("div");
-    div.className="resultItem";
+    const title=highlight(d.titulo||"",q);
+    const prev=highlight(previewText(d.texto||""),q);
+
     div.innerHTML=`
-      <b>${d.titulo}</b><br>
-      ${d.fecha||""}<br>
+      <b>${title}</b><br>
+      <small>${d.fecha||""}</small><br>
+      <div style="color:#555;font-size:13px;margin:4px 0">${prev}</div>
       <a href="${d.url}" target="_blank">Abrir nota</a>
+      <hr>
     `;
     resultsBox.appendChild(div);
   });
+
+  input.focus();
 }
 
-/* ===== CHAT UI ===== */
+/* ================= CHAT UI ================= */
 function addUser(text){
-  const row=document.createElement("div");
-  row.className="msg user";
-  row.innerHTML=`
-    <div class="bubble">${text}</div>
-    <div class="avatar">👤</div>
-  `;
-  chat.appendChild(row);
+  const d=document.createElement("div");
+  d.className="user";
+  d.textContent="👤 "+text;
+  chat.appendChild(d);
   chat.scrollTop=chat.scrollHeight;
 }
 
-function addBot(html, question){
-  const row=document.createElement("div");
-  row.className="msg bot";
+function addBot(html,question){
+  const wrap=document.createElement("div");
+  wrap.className="bot";
 
-  const bubble=document.createElement("div");
-  bubble.className="bubble";
-  bubble.innerHTML=html;
-
-  const actions=document.createElement("div");
-  actions.className="botActions";
+  const content=document.createElement("div");
+  content.innerHTML="🤖 "+html;
 
   const copyBtn=document.createElement("button");
   copyBtn.textContent="📋 Copiar";
-  copyBtn.onclick=()=>copyFormatted(bubble);
+  copyBtn.onclick=()=>copyFormatted(content);
 
-  const fb=buildFeedback(question, bubble.innerText);
+  const fbBox=buildFeedback(question,content.innerText);
 
-  actions.appendChild(copyBtn);
-  actions.appendChild(fb);
-
-  const wrap=document.createElement("div");
-  wrap.appendChild(bubble);
-  wrap.appendChild(actions);
-
-  row.innerHTML=`<div class="avatar">🤖</div>`;
-  row.appendChild(wrap);
-
-  chat.appendChild(row);
+  wrap.appendChild(content);
+  wrap.appendChild(copyBtn);
+  wrap.appendChild(fbBox);
+  chat.appendChild(wrap);
   chat.scrollTop=chat.scrollHeight;
 }
 
-/* ===== COPY ===== */
+/* ================= COPY ================= */
 function copyFormatted(el){
-  const c=el.cloneNode(true);
-  c.querySelectorAll("a").forEach(a=>{
+  const clone=el.cloneNode(true);
+  clone.querySelectorAll("a").forEach(a=>{
     a.replaceWith(`${a.textContent}: ${a.href}`);
   });
-  navigator.clipboard.writeText(c.innerText).then(()=>alert("Copiado"));
+  const txt=clone.innerText.replace(/^🤖 /,"").trim();
+  navigator.clipboard.writeText(txt).then(()=>alert("Copiado"));
 }
 
-/* ===== FEEDBACK ===== */
-function buildFeedback(question, answer){
+/* ================= FEEDBACK ================= */
+function buildFeedback(question,answer){
   const box=document.createElement("div");
   box.className="feedbackBox";
-
   let rating=0;
-  const stars=document.createElement("div");
 
+  const stars=document.createElement("div");
   for(let i=1;i<=5;i++){
     const s=document.createElement("span");
     s.textContent="★";
@@ -307,7 +249,7 @@ function buildFeedback(question, answer){
     s.onclick=()=>{
       rating=i;
       stars.querySelectorAll(".star").forEach((x,j)=>{
-        x.classList.toggle("selected", j<i);
+        x.classList.toggle("selected",j<i);
       });
     };
     stars.appendChild(s);
@@ -331,7 +273,7 @@ function buildFeedback(question, answer){
   return box;
 }
 
-/* ===== CHAT BACKEND ===== */
+/* ================= CHAT BACKEND ================= */
 function send(){
   const text=input.value.trim();
   if(!text) return;
@@ -348,11 +290,11 @@ function send(){
   .then(r=>r.json())
   .then(d=>{
     typing.style.display="none";
-    addBot(d.answer||"Sin respuesta", text);
+    addBot(d.answer||"Sin respuesta",text);
   })
   .catch(()=>{
     typing.style.display="none";
-    addBot("❌ Error de servidor", text);
+    addBot("❌ Error de servidor",text);
   });
 }
 
