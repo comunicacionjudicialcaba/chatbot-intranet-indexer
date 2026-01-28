@@ -1,9 +1,7 @@
 from flask import Flask, jsonify, request, render_template
 import json
 import os
-import smtplib
 import requests
-from email.message import EmailMessage
 from datetime import datetime
 import numpy as np
 from openai import OpenAI
@@ -49,7 +47,7 @@ embeddings_norm = embeddings / norms
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
 # ------------------------
-# HELPERS
+# HELPERS FECHA
 # ------------------------
 
 MESES = {
@@ -71,13 +69,14 @@ def detectar_anio(texto):
     return None
 
 # ------------------------
-# DETECCIÓN DE PLENARIO
+# TIPO DE PLENARIO
 # ------------------------
+
 def tipo_plenario(item):
     titulo = (item.get("titulo","")).lower()
     texto = (item.get("texto","")).lower()
 
-    # convocatoria (anuncio)
+    # ---- CONVOCATORIA ----
     if (
         "convocatoria" in titulo
         or "se convoca" in texto
@@ -86,36 +85,7 @@ def tipo_plenario(item):
     ):
         return "convocatoria"
 
-    # sesión real (crónica)
-    indicadores_sesion = [
-        "sesión plenaria",
-        "plenario ordinario",
-        "orden del día",
-        "durante la sesión",
-        "se aprobaron",
-        "trataron los siguientes temas",
-        "se celebró el plenario"
-    ]
-
-    if any(k in texto or k in titulo for k in indicadores_sesion):
-        return "sesion"
-
-    return "otro"
-    
-def tipo_plenario(item):
-    titulo = (item.get("titulo","")).lower()
-    texto = (item.get("texto","")).lower()
-
-    # ---- CONVOCATORIA (anuncio previo) ----
-    if (
-        "convocatoria" in titulo
-        or "se convoca" in texto
-        or "se realizará el plenario" in texto
-        or "se celebrará el plenario" in texto
-    ):
-        return "convocatoria"
-
-    # ---- SESIÓN REAL (crónica del plenario) ----
+    # ---- SESIÓN REAL ----
     indicadores_sesion = [
         "sesión plenaria",
         "plenario ordinario",
@@ -133,7 +103,7 @@ def tipo_plenario(item):
     return "otro"
 
 # ------------------------
-# SEMANTIC SEARCH (TEMAS)
+# SEMANTIC SEARCH (RAG)
 # ------------------------
 
 def semantic_search(query_embedding, top_k=40):
@@ -163,7 +133,7 @@ def group_chunks_by_url(chunks):
     return grouped
 
 # ------------------------
-# CONTEXTO
+# CONTEXTO PROMPT
 # ------------------------
 
 def build_context(docs):
@@ -178,7 +148,7 @@ def build_context(docs):
     return "\n---\n".join(partes)
 
 # ------------------------
-# PROMPT
+# PROMPT SISTEMA
 # ------------------------
 
 SYSTEM_PROMPT = """
@@ -215,12 +185,11 @@ FORMATO:
 @app.route("/")
 def home():
     return render_template("index.html")
-    
-    # 👉 ESTO ES PARA EL BUSCADOR WEB
+
+# 👉 BUSCADOR WEB
 @app.route("/data")
 def data():
     return jsonify(DATA)
-
 
 # =========================================================
 # 💬 CHAT
@@ -243,7 +212,7 @@ def chat():
 
     if "plenario" in q_lower:
 
-        plenarios = [d for d in DATA if es_plenario(d)]
+        plenarios = [d for d in DATA if tipo_plenario(d) != "otro"]
 
         mes_pedido = detectar_mes(q_lower)
         anio_pedido = detectar_anio(q_lower)
@@ -372,12 +341,10 @@ def feedback():
     try:
         r = requests.post(GOOGLE_FORM_URL, data=payload, timeout=10)
         print("✅ Feedback enviado a Google Forms:", r.status_code)
-
     except Exception as e:
         print("❌ Error enviando feedback:", e)
 
     return jsonify({"status": "ok"})
-
 
 
 # ------------------------
