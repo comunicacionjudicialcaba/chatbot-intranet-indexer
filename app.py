@@ -5,6 +5,7 @@ import requests
 import numpy as np
 from openai import OpenAI
 from collections import defaultdict
+import unicodedata
 
 GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 
@@ -46,6 +47,20 @@ embeddings_norm = embeddings / norms
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
 # ------------------------
+# NORMALIZACIÓN TEXTO
+# ------------------------
+
+def normalizar_texto(t):
+    if not t:
+        return ""
+    t = t.lower()
+    t = ''.join(
+        c for c in unicodedata.normalize('NFD', t)
+        if unicodedata.category(c) != 'Mn'
+    )
+    return t
+
+# ------------------------
 # HELPERS FECHA
 # ------------------------
 
@@ -54,16 +69,15 @@ MESES = {
     "julio":7, "agosto":8, "septiembre":9, "octubre":10, "noviembre":11, "diciembre":12
 }
 
-def detectar_mes(texto):
-    t = texto.lower()
+def detectar_mes(texto_norm):
     for k, v in MESES.items():
-        if k in t:
+        if k in texto_norm:
             return v
     return None
 
-def detectar_anio(texto):
+def detectar_anio(texto_norm):
     for y in range(2020, 2031):
-        if str(y) in texto:
+        if str(y) in texto_norm:
             return y
     return None
 
@@ -72,26 +86,26 @@ def detectar_anio(texto):
 # ------------------------
 
 def tipo_plenario(item):
-    titulo = (item.get("titulo","")).lower()
-    texto = (item.get("texto","")).lower()
+    titulo = normalizar_texto(item.get("titulo",""))
+    texto = normalizar_texto(item.get("texto",""))
 
     if (
         "convocatoria" in titulo
         or "se convoca" in texto
-        or "se realizará el plenario" in texto
-        or "se celebrará el plenario" in texto
+        or "se realizara el plenario" in texto
+        or "se celebrara el plenario" in texto
     ):
         return "convocatoria"
 
     indicadores_sesion = [
-        "sesión plenaria",
+        "sesion plenaria",
         "plenario ordinario",
-        "orden del día",
-        "durante la sesión",
+        "orden del dia",
+        "durante la sesion",
         "se aprobaron",
-        "se trató el temario",
-        "se celebró el último plenario",
-        "se celebró el plenario"
+        "se trato el temario",
+        "se celebro el ultimo plenario",
+        "se celebro el plenario"
     ]
 
     if any(k in texto or k in titulo for k in indicadores_sesion):
@@ -100,33 +114,27 @@ def tipo_plenario(item):
     return "otro"
 
 # ------------------------
-# DETECCIÓN PERSONA / ÁREA
+# DETECCIÓN PERSONA / ÁREA / NORMATIVA
 # ------------------------
 
 CARGO_KEYWORDS = [
-    "secretaría", "secretaria", "dirección", "direccion", "oficina", "programa",
-    "departamento", "coordinación", "coordinacion", "unidad", "gerencia", "área", "area"
+    "secretaria", "direccion", "oficina", "programa",
+    "departamento", "coordinacion", "unidad", "gerencia", "area"
 ]
 
-def es_busqueda_area(q):
-    ql = q.lower()
-    return any(k in ql for k in CARGO_KEYWORDS)
+NORMATIVA_KEYWORDS = ["resolucion", "res. cm", "normativa"]
 
-def es_busqueda_persona(q):
-    palabras = q.strip().split()
+def es_busqueda_area(q_norm):
+    return any(k in q_norm for k in CARGO_KEYWORDS)
+
+def es_busqueda_normativa(q_norm):
+    return any(k in q_norm for k in NORMATIVA_KEYWORDS)
+
+def es_busqueda_persona(q_original):
+    palabras = q_original.strip().split()
     if len(palabras) > 7:
         return False
     return sum(1 for p in palabras if p[:1].isupper()) >= 1
-
-# ------------------------
-# DETECCIÓN NORMATIVA
-# ------------------------
-
-NORMATIVA_KEYWORDS = ["resolución", "resolucion", "res. cm", "normativa"]
-
-def es_busqueda_normativa(q):
-    ql = q.lower()
-    return any(k in ql for k in NORMATIVA_KEYWORDS)
 
 # ------------------------
 # SEMANTIC SEARCH (RAG)
@@ -223,8 +231,9 @@ def data():
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
+
     question = (data.get("question") or "").strip()
-    q_lower = question.lower()
+    q_norm = normalizar_texto(question)
 
     print("🔎 Pregunta:", question)
 
@@ -235,12 +244,12 @@ def chat():
     # 🟣 MODO PLENARIO
     # =========================================================
 
-    if "plenario" in q_lower:
+    if "plenario" in q_norm:
 
         plenarios = [d for d in DATA if tipo_plenario(d) != "otro"]
 
-        mes_pedido = detectar_mes(q_lower)
-        anio_pedido = detectar_anio(q_lower)
+        mes_pedido = detectar_mes(q_norm)
+        anio_pedido = detectar_anio(q_norm)
 
         if anio_pedido:
             plenarios = [p for p in plenarios if p.get("anio") == anio_pedido]
@@ -250,7 +259,7 @@ def chat():
 
         plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
-        if "cuáles" in q_lower or "cuales" in q_lower:
+        if "cuales" in q_norm:
             if not plenarios:
                 return jsonify({"answer": "No se registran plenarios para el período solicitado."})
 
@@ -262,12 +271,12 @@ def chat():
                 )
             return jsonify({"answer": "<br>".join(out)})
 
-        if "cuántos" in q_lower or "cuantos" in q_lower:
+        if "cuantos" in q_norm:
             if anio_pedido:
                 return jsonify({"answer": f"Durante {anio_pedido} se registran {len(plenarios)} plenarios."})
             return jsonify({"answer": f"Se registran {len(plenarios)} plenarios en los textos disponibles."})
 
-        if "último" in q_lower or "ultimo" in q_lower:
+        if "ultimo" in q_norm:
             plenarios = plenarios[:1]
 
         if not plenarios:
@@ -300,12 +309,12 @@ PREGUNTA:
     # =========================================================
 
     modo_persona = es_busqueda_persona(question)
-    modo_area = es_busqueda_area(question)
-    modo_normativa = es_busqueda_normativa(question)
+    modo_area = es_busqueda_area(q_norm)
+    modo_normativa = es_busqueda_normativa(q_norm)
 
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
-        input=question
+        input=q_norm
     ).data[0].embedding
 
     chunks, scores = semantic_search(np.array(q_emb), top_k=100)
@@ -320,7 +329,6 @@ PREGUNTA:
 
     context = build_context(docs)
 
-    # ---- PROMPT PERSONA / ÁREA ----
     if modo_persona or modo_area:
         prompt = f"""
 TEXTOS:
@@ -356,7 +364,6 @@ PREGUNTA:
 
     answer = completion.choices[0].message.content
 
-    # 👉 Agregar leyenda si es normativa
     if modo_normativa:
         answer += (
             "<br><br><b>ℹ️ Para búsquedas normativas usá el buscador oficial:</b><br>"
