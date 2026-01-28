@@ -5,7 +5,6 @@ import requests
 import numpy as np
 from openai import OpenAI
 from collections import defaultdict
-import re
 
 GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 
@@ -118,6 +117,16 @@ def es_busqueda_persona(q):
     if len(palabras) > 7:
         return False
     return sum(1 for p in palabras if p[:1].isupper()) >= 1
+
+# ------------------------
+# DETECCIÓN NORMATIVA
+# ------------------------
+
+NORMATIVA_KEYWORDS = ["resolución", "resolucion", "res. cm", "normativa"]
+
+def es_busqueda_normativa(q):
+    ql = q.lower()
+    return any(k in ql for k in NORMATIVA_KEYWORDS)
 
 # ------------------------
 # SEMANTIC SEARCH (RAG)
@@ -287,11 +296,12 @@ PREGUNTA:
         return jsonify({"answer": answer})
 
     # =========================================================
-    # 🔵 PERSONA / ÁREA / TEMÁTICO (RAG)
+    # 🔵 PERSONA / ÁREA / TEMÁTICO / NORMATIVA (RAG)
     # =========================================================
 
     modo_persona = es_busqueda_persona(question)
     modo_area = es_busqueda_area(question)
+    modo_normativa = es_busqueda_normativa(question)
 
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
@@ -345,6 +355,15 @@ PREGUNTA:
     )
 
     answer = completion.choices[0].message.content
+
+    # 👉 Agregar leyenda si es normativa
+    if modo_normativa:
+        answer += (
+            "<br><br><b>ℹ️ Para búsquedas normativas usá el buscador oficial:</b><br>"
+            '<a href="https://buscador.jusbaires.gob.ar" target="_blank">'
+            "👉 buscador.jusbaires.gob.ar</a>"
+        )
+
     return jsonify({"answer": answer})
 
 # =========================================================
