@@ -123,12 +123,20 @@ CARGO_KEYWORDS = [
 ]
 
 NORMATIVA_KEYWORDS = ["resolucion", "res. cm", "normativa"]
+ISO_KEYWORDS = ["iso", "normasiso9001", "gestion de calidad", "sgc"]
+SERVICIO_KEYWORDS = ["servicio", "corte", "mantenimiento", "fumigacion"]
 
 def es_busqueda_area(q_norm):
     return any(k in q_norm for k in CARGO_KEYWORDS)
 
 def es_busqueda_normativa(q_norm):
     return any(k in q_norm for k in NORMATIVA_KEYWORDS)
+
+def es_busqueda_iso(q_norm):
+    return any(k in q_norm for k in ISO_KEYWORDS)
+
+def es_busqueda_servicio(q_norm):
+    return any(k in q_norm for k in SERVICIO_KEYWORDS)
 
 def es_busqueda_persona(q_original):
     palabras = q_original.strip().split()
@@ -177,12 +185,11 @@ def build_context(docs):
             f"Título: {d.get('titulo','')}\n"
             f"Fecha: {d.get('fecha','')}\n"
             f"Texto:\n{d.get('texto','')}\n"
-            f"URL: {d.get('url','')}\n"
         )
     return "\n---\n".join(partes)
 
 # ------------------------
-# PROMPT SISTEMA
+# PROMPTS
 # ------------------------
 
 SYSTEM_PROMPT = """
@@ -192,19 +199,50 @@ Respondés exclusivamente con la información contenida en las notas provistas.
 
 CRITERIOS GENERALES:
 - No inventes datos ni hechos.
-- No transcribas normas completas.
 - No respondas “no se menciona” si el texto permite una clasificación razonable.
-- Organizá la información de forma clara y útil para el personal judicial.
+- Interpretá el lenguaje institucional.
+- Los hashtags institucionales son señales válidas de clasificación.
+- Organizá la información de forma clara y útil.
+"""
 
-USO DEL CONTENIDO:
-- Podés interpretar el lenguaje institucional (por ejemplo: procesos en auditoría, implementación, experiencia piloto).
-- Los hashtags institucionales (ej. #normasiso9001, #plenario) son señales válidas de clasificación temática.
-- Podés agrupar información por tipo, estado o área cuando el texto lo permita.
+PROMPT_ISO = """
+La consulta refiere al Sistema de Gestión de Calidad o ISO 9001.
 
-FORMATO:
-- Usá listas y subtítulos.
-- No repitas texto innecesario.
-- Los links se agregan fuera del texto explicativo.
+Clasificá la información en:
+• Procesos con certificación confirmada
+• Procesos en auditoría o certificación
+• Implementaciones o experiencias de calidad
+• Marco institucional del SGC
+
+No afirmes certificaciones no confirmadas.
+"""
+
+PROMPT_PLENARIO = """
+La consulta refiere a plenarios del Consejo.
+
+Indicá:
+• Fecha
+• Tipo de plenario
+• Autoridades presentes
+• Principales decisiones
+No mezcles sesiones distintas.
+"""
+
+PROMPT_SERVICIO = """
+La consulta refiere a servicios operativos.
+
+Indicá claramente:
+• Servicio afectado
+• Fechas y alcance
+• Área responsable
+Priorizá claridad práctica.
+"""
+
+PROMPT_NORMATIVA = """
+La consulta refiere a normativa.
+
+Explicá el contexto si surge del texto.
+No reemplaces el buscador normativo oficial.
 """
 
 # ------------------------
@@ -235,6 +273,20 @@ def chat():
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
+    # ------------------------
+    # PROMPT EXTRA
+    # ------------------------
+
+    prompt_extra = ""
+    if es_busqueda_iso(q_norm):
+        prompt_extra = PROMPT_ISO
+    elif "plenario" in q_norm:
+        prompt_extra = PROMPT_PLENARIO
+    elif es_busqueda_servicio(q_norm):
+        prompt_extra = PROMPT_SERVICIO
+    elif es_busqueda_normativa(q_norm):
+        prompt_extra = PROMPT_NORMATIVA
+
     # =========================================================
     # 🟣 MODO PLENARIO
     # =========================================================
@@ -254,11 +306,7 @@ def chat():
 
         plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
 
-        # ---- LISTADO ----
         if "cuales" in q_norm:
-            if not plenarios:
-                return jsonify({"answer": "No se registran plenarios para el período solicitado."})
-
             out = ["Estos fueron los plenarios registrados:<br>"]
             for p in plenarios:
                 out.append(
@@ -267,20 +315,6 @@ def chat():
                 )
             return jsonify({"answer": "<br>".join(out)})
 
-        # ---- CUÁNTOS ----
-        if "cuantos" in q_norm:
-            if anio_pedido:
-                return jsonify({"answer": f"Durante {anio_pedido} se registran {len(plenarios)} plenarios."})
-            return jsonify({"answer": f"Se registran {len(plenarios)} plenarios en los textos disponibles."})
-
-        # ---- ÚLTIMO ----
-        if "ultimo" in q_norm:
-            plenarios = plenarios[:1]
-
-        if not plenarios:
-            return jsonify({"answer": "No encontré plenarios para el período solicitado."})
-
-        # ---- DETALLE ----
         doc = plenarios[0]
 
         prompt = f"""
@@ -295,6 +329,7 @@ PREGUNTA:
             model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": prompt_extra},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
@@ -302,18 +337,16 @@ PREGUNTA:
 
         answer = completion.choices[0].message.content
 
-        # ✅ AGREGAR LINK GARANTIZADO DESDE BACKEND
-        url = doc.get("url")
-        if url:
+        if doc.get("url"):
             answer += (
                 "<br><br><b>🔗 Nota completa:</b><br>"
-                f'<a href="{url}" target="_blank">Ver nota del plenario</a>'
+                f'<a href="{doc.get("url")}" target="_blank">Ver nota</a>'
             )
 
         return jsonify({"answer": answer})
 
     # =========================================================
-    # 🔵 PERSONA / ÁREA / TEMÁTICO / NORMATIVA (RAG)
+    # 🔵 RAG GENERAL
     # =========================================================
 
     modo_persona = es_busqueda_persona(question)
@@ -337,23 +370,7 @@ PREGUNTA:
 
     context = build_context(docs)
 
-    if modo_persona or modo_area:
-        prompt = f"""
-TEXTOS:
-{context}
-
-PREGUNTA:
-Listá todas las notas relevantes relacionadas con la consulta.
-Para cada una indicá:
-- Título
-- Fecha
-- En qué contexto aparece la persona o el área
-- Link
-
-Consulta: {question}
-"""
-    else:
-        prompt = f"""
+    prompt = f"""
 TEXTOS:
 {context}
 
@@ -365,6 +382,7 @@ PREGUNTA:
         model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": prompt_extra},
             {"role": "user", "content": prompt},
         ],
         temperature=0.2,
@@ -372,7 +390,21 @@ PREGUNTA:
 
     answer = completion.choices[0].message.content
 
-    # 👉 Leyenda para normativa
+    # ------------------------
+    # LINKS GARANTIZADOS
+    # ------------------------
+
+    links_html = []
+    for d in docs:
+        if d.get("url"):
+            links_html.append(
+                f'• {d.get("titulo","")} — '
+                f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+            )
+
+    if links_html:
+        answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links_html)
+
     if modo_normativa:
         answer += (
             "<br><br><b>ℹ️ Para búsquedas normativas usá el buscador oficial:</b><br>"
@@ -398,8 +430,7 @@ def feedback():
     }
 
     try:
-        r = requests.post(GOOGLE_FORM_URL, data=payload, timeout=10)
-        print("✅ Feedback enviado a Google Forms:", r.status_code)
+        requests.post(GOOGLE_FORM_URL, data=payload, timeout=10)
     except Exception as e:
         print("❌ Error enviando feedback:", e)
 
