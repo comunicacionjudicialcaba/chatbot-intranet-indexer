@@ -215,26 +215,38 @@ def obtener_items_cfj(url):
     soup = BeautifulSoup(r.text, "html.parser")
 
     items = []
-    for a in soup.select("a"):
-        texto = a.get_text(strip=True)
-        href = a.get("href","")
+
+    # Buscar títulos comunes de actividades
+    for tag in soup.find_all(["h2", "h3", "strong", "p"]):
+        texto = tag.get_text(strip=True)
 
         if not texto:
             continue
-        if "curso" not in href and "beca" not in href:
+
+        # Filtro básico de relevancia
+        if len(texto) < 20:
             continue
 
-        link = href if href.startswith("http") else f"https://cfj.gov.ar/{href.lstrip('/')}"
-        items.append({"titulo": texto, "url": link})
+        if not any(k in texto.lower() for k in [
+            "curso", "seminario", "taller", "capacitación", "formación", "jornada"
+        ]):
+            continue
 
+        items.append({
+            "titulo": texto,
+            "url": url
+        })
+
+    # deduplicar
     vistos = set()
     out = []
     for i in items:
-        if i["url"] not in vistos:
-            vistos.add(i["url"])
+        if i["titulo"] not in vistos:
+            vistos.add(i["titulo"])
             out.append(i)
 
     return out[:10]
+
 
 def responder_cfj(question):
     cursos = obtener_items_cfj(CFJ_CAP_URL)
