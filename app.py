@@ -343,34 +343,38 @@ def chat():
     data = request.get_json()
     question = (data.get("question") or "").strip()
     q_norm = normalizar_texto(question)
-        # 🔧 CAMBIO FINAL – Fallback léxico por título (notas sin texto / nuevas)
+
+    if not question:
+        return jsonify({"answer": "No recibí la pregunta."})
+
+    # =====================================================
     # 🔧 Fallback léxico por título (con stopwords y umbral)
-STOPWORDS = {
-    "de", "la", "el", "los", "las", "y", "o", "en", "a", "del",
-    "un", "una", "por", "para", "con", "al"
-}
+    # =====================================================
 
-terminos_clave = [
-    p for p in q_norm.split()
-    if p not in STOPWORDS and len(p) > 3
-]
+    STOPWORDS = {
+        "de", "la", "el", "los", "las", "y", "o", "en", "a", "del",
+        "un", "una", "por", "para", "con", "al"
+    }
 
-coincidencias_titulo = []
+    terminos_clave = [
+        p for p in q_norm.split()
+        if p not in STOPWORDS and len(p) > 3
+    ]
 
-for d in DATA:
-    titulo_norm = normalizar_texto(d.get("titulo",""))
-    if not titulo_norm:
-        continue
+    coincidencias_titulo = []
 
-    matches = sum(1 for t in terminos_clave if t in titulo_norm)
+    for d in DATA:
+        titulo_norm = normalizar_texto(d.get("titulo", ""))
+        if not titulo_norm:
+            continue
 
-    # exige al menos 1 término fuerte
-    if matches >= 1:
-        coincidencias_titulo.append(d)
+        matches = sum(1 for t in terminos_clave if t in titulo_norm)
 
+        # exige al menos 1 término fuerte
+        if matches >= 1:
+            coincidencias_titulo.append(d)
 
     if coincidencias_titulo:
-        # armamos respuesta directa sin RAG
         partes = []
         for d in coincidencias_titulo[:5]:
             partes.append(
@@ -386,9 +390,10 @@ for d in DATA:
 
         return jsonify({"answer": answer})
 
+    # =====================================================
+    # ⬇️ ACÁ SIGUE TU FLUJO NORMAL (CFJ / RAG / etc.)
+    # =====================================================
 
-    if not question:
-        return jsonify({"answer": "No recibí la pregunta."})
         
             # 🔴 PRIORIDAD CFJ
     if (
