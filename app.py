@@ -127,9 +127,9 @@ NORMATIVA_KEYWORDS = ["resolucion", "res. cm", "normativa"]
 ISO_KEYWORDS = ["iso", "normasiso9001", "gestion de calidad", "sgc"]
 SERVICIO_KEYWORDS = ["servicio", "corte", "mantenimiento", "fumigacion"]
 CFJ_KEYWORDS = [
-    "curso", "cursos", "capacitacion", "capacitación",
+    "curso", "cursos", "capacitacion", "capacitación", "capacitaciones"
     "cfj", "formacion judicial", "formación judicial",
-    "taller", "seminario", "beca", "becas"
+    "taller", "seminario", "beca", "becas", "centro de formacion judicial", "centro de formación judicial"
 ]
 
 def es_busqueda_area(q_norm):
@@ -187,9 +187,20 @@ No reemplaces el buscador normativo oficial.
 """
 
 PROMPT_CFJ = """
-La consulta refiere a cursos o becas del Centro de Formación Judicial (CFJ).
-Usá solo información oficial del sitio del CFJ.
-Incluí links.
+La consulta refiere EXCLUSIVAMENTE a la oferta vigente del
+Centro de Formación Judicial (CFJ).
+
+INSTRUCCIONES OBLIGATORIAS:
+- Respondé SOLO con la información listada en el contexto provisto.
+- NO menciones notas, documentos internos ni embeddings.
+- NO digas “no se dispone de información”.
+- NO inventes URLs ni secciones.
+- Si hay cursos o becas listados, ENUMERALOS.
+- Si no hubiera resultados, indicá: “La oferta visible en el sitio oficial puede variar”.
+
+El sitio oficial del CFJ utiliza:
+- https://cfj.gov.ar/capacitacion.php
+- https://cfj.gov.ar/becas.php
 """
 
 # =========================================================
@@ -309,7 +320,16 @@ def chat():
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
+    # 🔴 PRIORIDAD CFJ
+if (
+    "cfj" in q_norm
+    or "centro de formacion judicial" in q_norm
+    or "centro de formación judicial" in q_norm
+):
+    return responder_cfj(question)
+    
     # ---- CFJ ----
+    
     if es_busqueda_cfj(q_norm):
         return responder_cfj(question)
 
