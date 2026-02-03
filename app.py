@@ -164,6 +164,14 @@ Respondés exclusivamente con la información contenida en las notas provistas.
 
 - No inventes datos.
 - Organizá la información con claridad.
+
+🔧 BLINDAJE:
+- Algunas notas pueden no tener aún desarrollo de texto.
+- Si una nota refiere directamente al tema consultado por su TÍTULO,
+  utilizá esa información y aclaralo explícitamente.
+- No descartes una nota relevante solo porque su texto esté vacío.
+- No respondas “no se menciona” si existe una nota cuyo título coincide
+  claramente con la consulta.
 """
 
 PROMPT_ISO = """
@@ -308,12 +316,19 @@ def group_chunks_by_url(chunks):
 def build_context(docs):
     partes = []
     for d in docs:
+        texto = (d.get("texto") or "").strip()
+
+        # 🔧 CAMBIO 2 – nota sin texto
+        if not texto:
+            texto = "⚠️ Nota sin desarrollo de contenido al momento."
+
         partes.append(
             f"Título: {d.get('titulo','')}\n"
             f"Fecha: {d.get('fecha','')}\n"
-            f"Texto:\n{d.get('texto','')}\n"
+            f"Texto:\n{texto}\n"
         )
     return "\n---\n".join(partes)
+
 
 # =========================================================
 # ROUTES
@@ -358,6 +373,19 @@ def chat():
     ).data[0].embedding
 
     chunks = semantic_search(np.array(q_emb), top_k=80)
+        # 🔧 CAMBIO 3 – Re-rank por título cuando no hay texto
+    palabras_query = q_norm.split()
+
+    for c in chunks:
+        c["_boost"] = 0
+        if not c.get("texto"):
+            titulo_norm = normalizar_texto(c.get("titulo",""))
+            if any(p in titulo_norm for p in palabras_query):
+                c["_boost"] = 1
+
+    # Prioriza notas con título relevante y sin texto
+    chunks.sort(key=lambda x: x.get("_boost", 0), reverse=True)
+
     docs = group_chunks_by_url(chunks)[:8]
 
     if not docs:
