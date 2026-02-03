@@ -10,18 +10,18 @@ from bs4 import BeautifulSoup
 
 GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 
-# ------------------------
+# =========================================================
 # INIT
-# ------------------------
+# =========================================================
 
 client = OpenAI()
 app = Flask(__name__)
 
 DATA_FILE = "data.json"
 
-# ------------------------
+# =========================================================
 # LOAD DATA
-# ------------------------
+# =========================================================
 
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -31,9 +31,9 @@ def load_data():
 
 DATA = load_data()
 
-# ------------------------
+# =========================================================
 # LOAD EMBEDDINGS (RAG)
-# ------------------------
+# =========================================================
 
 print("🔄 Cargando embeddings...")
 
@@ -47,9 +47,9 @@ embeddings_norm = embeddings / norms
 
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
 
-# ------------------------
+# =========================================================
 # NORMALIZACIÓN TEXTO
-# ------------------------
+# =========================================================
 
 def normalizar_texto(t):
     if not t:
@@ -61,9 +61,9 @@ def normalizar_texto(t):
     )
     return t
 
-# ------------------------
+# =========================================================
 # HELPERS FECHA
-# ------------------------
+# =========================================================
 
 MESES = {
     "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
@@ -82,9 +82,9 @@ def detectar_anio(texto_norm):
             return y
     return None
 
-# ------------------------
+# =========================================================
 # TIPO DE PLENARIO
-# ------------------------
+# =========================================================
 
 def tipo_plenario(item):
     titulo = normalizar_texto(item.get("titulo",""))
@@ -98,7 +98,7 @@ def tipo_plenario(item):
     ):
         return "convocatoria"
 
-    indicadores_sesion = [
+    indicadores = [
         "sesion plenaria",
         "plenario ordinario",
         "orden del dia",
@@ -109,14 +109,14 @@ def tipo_plenario(item):
         "se celebro el plenario"
     ]
 
-    if any(k in texto or k in titulo for k in indicadores_sesion):
+    if any(k in texto or k in titulo for k in indicadores):
         return "sesion"
 
     return "otro"
 
-# ------------------------
-# DETECCIÓN DE CONSULTA PERSONA / AREA / NORMATIVA
-# ------------------------
+# =========================================================
+# DETECCIÓN DE CONSULTA
+# =========================================================
 
 CARGO_KEYWORDS = [
     "secretaria", "direccion", "oficina", "programa",
@@ -154,21 +154,50 @@ def es_busqueda_persona(q_original):
     return sum(1 for p in palabras if p[:1].isupper()) >= 1
 
 # =========================================================
-# CFJ – FUENTE VIVA (RESPUESTA CON PROMPT)
+# PROMPTS
+# =========================================================
+
+SYSTEM_PROMPT = """
+Sos un asistente institucional del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
+
+Respondés exclusivamente con la información contenida en las notas provistas.
+
+- No inventes datos.
+- Organizá la información con claridad.
+"""
+
+PROMPT_ISO = """
+La consulta refiere al Sistema de Gestión de Calidad o ISO 9001.
+Clasificá información confirmada. No inventes certificaciones.
+"""
+
+PROMPT_PLENARIO = """
+La consulta refiere a plenarios del Consejo.
+Indicá fecha, tipo y decisiones principales.
+"""
+
+PROMPT_SERVICIO = """
+La consulta refiere a servicios operativos.
+Indicá servicio, fechas y área responsable.
+"""
+
+PROMPT_NORMATIVA = """
+La consulta refiere a normativa.
+No reemplaces el buscador normativo oficial.
+"""
+
+PROMPT_CFJ = """
+La consulta refiere a cursos o becas del Centro de Formación Judicial (CFJ).
+Usá solo información oficial del sitio del CFJ.
+Incluí links.
+"""
+
+# =========================================================
+# CFJ – FUENTE VIVA
 # =========================================================
 
 CFJ_CAP_URL = "https://cfj.gov.ar/capacitacion.php"
 CFJ_BECAS_URL = "https://cfj.gov.ar/becas.php"
-
-PROMPT_CFJ = """
-La consulta refiere a cursos o capacitaciones del Centro de Formación Judicial (CFJ).
-
-- Listá únicamente información disponible en el sitio oficial del CFJ.
-- No inventes cursos, fechas ni requisitos.
-- Incluí links directos a cada curso o beca cuando sea posible.
-- Indicá claramente que la inscripción se realiza desde el sitio del CFJ.
-- Redactá en un tono institucional, claro y útil.
-"""
 
 def obtener_items_cfj(url):
     r = requests.get(url, timeout=15)
@@ -176,12 +205,12 @@ def obtener_items_cfj(url):
 
     items = []
     for a in soup.select("a"):
-        href = a.get("href","")
         texto = a.get_text(strip=True)
+        href = a.get("href","")
 
         if not texto:
             continue
-        if "curso.php" not in href and "beca" not in href:
+        if "curso" not in href and "beca" not in href:
             continue
 
         link = href if href.startswith("http") else f"https://cfj.gov.ar/{href.lstrip('/')}"
@@ -201,22 +230,14 @@ def responder_cfj(question):
     becas = obtener_items_cfj(CFJ_BECAS_URL)
 
     contexto = []
-
-    if cursos:
-        contexto.append("CURSOS DISPONIBLES:")
-        for c in cursos:
-            contexto.append(f"- {c['titulo']} ({c['url']})")
-
-    if becas:
-        contexto.append("\nBECAS DISPONIBLES:")
-        for b in becas:
-            contexto.append(f"- {b['titulo']} ({b['url']})")
-
-    contexto_texto = "\n".join(contexto)
+    for c in cursos:
+        contexto.append(f"- {c['titulo']} ({c['url']})")
+    for b in becas:
+        contexto.append(f"- {b['titulo']} ({b['url']})")
 
     prompt = f"""
-INFORMACIÓN OFICIAL DEL CFJ:
-{contexto_texto}
+INFORMACIÓN OFICIAL CFJ:
+{chr(10).join(contexto)}
 
 PREGUNTA:
 {question}
@@ -233,29 +254,21 @@ PREGUNTA:
     )
 
     answer = completion.choices[0].message.content
-
     answer += (
-        "<br><br><b>ℹ️ Inscripción y oferta completa:</b><br>"
-        f'<a href="{CFJ_CAP_URL}" target="_blank">👉 Centro de Formación Judicial</a>'
+        "<br><br><b>🔗 Oferta completa:</b><br>"
+        f'<a href="{CFJ_CAP_URL}" target="_blank">Centro de Formación Judicial</a>'
     )
-
     return jsonify({"answer": answer})
 
-# ------------------------
-# SEMANTIC SEARCH (RAG)
-# ------------------------
+# =========================================================
+# RAG
+# =========================================================
 
 def semantic_search(query_embedding, top_k=40):
     q = query_embedding / np.linalg.norm(query_embedding)
     sims = np.dot(embeddings_norm, q)
-    top_idx = np.argsort(sims)[-top_k:][::-1]
-    results = [metadata[i] for i in top_idx]
-    scores = [float(sims[i]) for i in top_idx]
-    return results, scores
-
-# ------------------------
-# AGRUPAR POR URL
-# ------------------------
+    idx = np.argsort(sims)[-top_k:][::-1]
+    return [metadata[i] for i in idx]
 
 def group_chunks_by_url(chunks):
     docs = defaultdict(list)
@@ -264,19 +277,12 @@ def group_chunks_by_url(chunks):
 
     grouped = []
     for url, parts in docs.items():
-        text = "\n".join(p.get("texto", "") for p in parts)
         base = parts[0].copy()
-        base["texto"] = text
+        base["texto"] = "\n".join(p.get("texto","") for p in parts)
         grouped.append(base)
-
     return grouped
 
-# ------------------------
-# CONTEXTO PROMPT
-# ------------------------
-
 def build_context(docs):
-    partesB
     partes = []
     for d in docs:
         partes.append(
@@ -286,78 +292,13 @@ def build_context(docs):
         )
     return "\n---\n".join(partes)
 
-# ------------------------
-# PROMPT SISTEMA
-# ------------------------
-
-SYSTEM_PROMPT = """
-Sos un asistente institucional del Consejo de la Magistratura de la Ciudad Autónoma de Buenos Aires.
-
-Respondés exclusivamente con la información contenida en las notas provistas.
-
-CRITERIOS GENERALES:
-- No inventes datos ni hechos.
-- No respondas “no se menciona” si el texto permite una clasificación razonable.
-- Interpretá el lenguaje institucional.
-- Los hashtags institucionales son señales válidas de clasificación.
-- Organizá la información de forma clara y útil.
-"""
-
-PROMPT_ISO = """
-La consulta refiere al Sistema de Gestión de Calidad o ISO 9001.
-
-Clasificá la información en:
-• Procesos con certificación confirmada
-• Procesos en auditoría o certificación
-• Implementaciones o experiencias de calidad
-• Marco institucional del SGC
-
-No afirmes certificaciones no confirmadas.
-"""
-
-PROMPT_PLENARIO = """
-La consulta refiere a plenarios del Consejo.
-
-Indicá:
-• Fecha
-• Tipo de plenario
-• Autoridades presentes
-• Principales decisiones
-No mezcles sesiones distintas.
-"""
-
-PROMPT_SERVICIO = """
-La consulta refiere a servicios operativos.
-
-Indicá claramente:
-• Servicio afectado
-• Fechas y alcance
-• Área responsable
-Priorizá claridad práctica.
-"""
-
-PROMPT_NORMATIVA = """
-La consulta refiere a normativa.
-
-Explicá el contexto si surge del texto.
-No reemplaces el buscador normativo oficial.
-"""
-
-# ------------------------
+# =========================================================
 # ROUTES
-# ------------------------
+# =========================================================
 
 @app.route("/")
 def home():
     return render_template("index.html")
-
-@app.route("/data")
-def data():
-    return jsonify(DATA)
-
-# =========================================================
-# 💬 CHAT
-# =========================================================
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -368,17 +309,11 @@ def chat():
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
-    # -------- CFJ --------
+    # ---- CFJ ----
     if es_busqueda_cfj(q_norm):
         return responder_cfj(question)
 
-    # -------- resto del flujo (RAG / plenarios / etc.) --------
-    return jsonify({"answer": "Consulta procesada por flujo general."})
-
- # ------------------------
-    # PROMPT EXTRA
-    # ------------------------
-
+    # ---- PROMPT EXTRA ----
     prompt_extra = ""
     if es_busqueda_iso(q_norm):
         prompt_extra = PROMPT_ISO
@@ -389,86 +324,17 @@ def chat():
     elif es_busqueda_normativa(q_norm):
         prompt_extra = PROMPT_NORMATIVA
 
-    # =========================================================
-    # 🟣 MODO PLENARIO
-    # =========================================================
-
-    if "plenario" in q_norm:
-
-        plenarios = [d for d in DATA if tipo_plenario(d) != "otro"]
-
-        mes_pedido = detectar_mes(q_norm)
-        anio_pedido = detectar_anio(q_norm)
-
-        if anio_pedido:
-            plenarios = [p for p in plenarios if p.get("anio") == anio_pedido]
-
-        if mes_pedido:
-            plenarios = [p for p in plenarios if p.get("mes") == mes_pedido]
-
-        plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
-
-        if "cuales" in q_norm:
-            out = ["Estos fueron los plenarios registrados:<br>"]
-            for p in plenarios:
-                out.append(
-                    f"- {p.get('fecha','')} — {p.get('titulo','')} "
-                    f'(<a href="{p.get("url")}" target="_blank">Ver nota</a>)'
-                )
-            return jsonify({"answer": "<br>".join(out)})
-
-        doc = plenarios[0]
-
-        prompt = f"""
-TEXTO:
-{doc.get("texto","")}
-
-PREGUNTA:
-{question}
-"""
-
-        completion = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "system", "content": prompt_extra},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
-
-        answer = completion.choices[0].message.content
-
-        if doc.get("url"):
-            answer += (
-                "<br><br><b>🔗 Nota completa:</b><br>"
-                f'<a href="{doc.get("url")}" target="_blank">Ver nota</a>'
-            )
-
-        return jsonify({"answer": answer})
-
-    # =========================================================
-    # 🔵 RAG GENERAL
-    # =========================================================
-
-    modo_persona = es_busqueda_persona(question)
-    modo_area = es_busqueda_area(q_norm)
-    modo_normativa = es_busqueda_normativa(q_norm)
-
+    # ---- RAG GENERAL ----
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
         input=q_norm
     ).data[0].embedding
 
-    chunks, scores = semantic_search(np.array(q_emb), top_k=100)
-
-    if not (modo_persona or modo_area):
-        chunks = [c for c in chunks if len(c.get("texto","")) > 250]
-
-    docs = group_chunks_by_url(chunks)[:10]
+    chunks = semantic_search(np.array(q_emb), top_k=80)
+    docs = group_chunks_by_url(chunks)[:8]
 
     if not docs:
-        return jsonify({"answer": "No encontré información relacionada con tu consulta."})
+        return jsonify({"answer": "No encontré información relacionada."})
 
     context = build_context(docs)
 
@@ -492,55 +358,22 @@ PREGUNTA:
 
     answer = completion.choices[0].message.content
 
-    # ------------------------
-    # LINKS GARANTIZADOS
-    # ------------------------
-
-    links_html = []
+    links = []
     for d in docs:
         if d.get("url"):
-            links_html.append(
+            links.append(
                 f'• {d.get("titulo","")} — '
                 f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
             )
 
-    if links_html:
-        answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links_html)
-
-    if modo_normativa:
-        answer += (
-            "<br><br><b>ℹ️ Para búsquedas normativas usá el buscador oficial:</b><br>"
-            '<a href="https://buscador.jusbaires.gob.ar" target="_blank">'
-            "👉 buscador.jusbaires.gob.ar</a>"
-        )
+    if links:
+        answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
 
     return jsonify({"answer": answer})
 
 # =========================================================
-# ✉ FEEDBACK
-# =========================================================
-
-@app.route("/feedback", methods=["POST"])
-def feedback():
-    data = request.get_json()
-
-    payload = {
-        "entry.2141687049": data.get("question", ""),
-        "entry.461024130": data.get("answer", ""),
-        "entry.446421198": data.get("rating", ""),
-        "entry.2031885759": data.get("comment", ""),
-    }
-
-    try:
-        requests.post(GOOGLE_FORM_URL, data=payload, timeout=10)
-    except Exception as e:
-        print("❌ Error enviando feedback:", e)
-
-    return jsonify({"status": "ok"})
-
-# ------------------------
 # RUN
-# ------------------------
+# =========================================================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
