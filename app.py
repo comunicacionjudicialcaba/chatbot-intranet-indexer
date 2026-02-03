@@ -348,12 +348,62 @@ def chat():
         return jsonify({"answer": "No recibí la pregunta."})
 
     # =====================================================
-    # 🔧 Fallback léxico por título (con stopwords y umbral)
+    # 🧭 DETECCIÓN DE INTENCIÓN (NO responde)
     # =====================================================
+    es_plenario = "plenario" in q_norm
+    es_cfj = es_busqueda_cfj(q_norm)
+    es_normativa = es_busqueda_normativa(q_norm)
+    es_servicio = es_busqueda_servicio(q_norm)
+    es_iso = es_busqueda_iso(q_norm)
 
+    # =====================================================
+    # 🟣 PLENARIOS (PRIORIDAD MÁXIMA)
+    # =====================================================
+    if es_plenario:
+        plenarios = [d for d in DATA if tipo_plenario(d) != "otro"]
+
+        anio = detectar_anio(q_norm)
+        mes = detectar_mes(q_norm)
+
+        if anio:
+            plenarios = [p for p in plenarios if p.get("anio") == anio]
+        if mes:
+            plenarios = [p for p in plenarios if p.get("mes") == mes]
+
+        plenarios.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
+
+        out = ["Estos fueron los plenarios registrados:"]
+        for p in plenarios[:10]:
+            out.append(
+                f"• {p.get('fecha')} — {p.get('titulo')} "
+                f'<a href="{p.get("url")}" target="_blank">Ver nota</a>'
+            )
+
+        return jsonify({"answer": "<br>".join(out)})
+
+    # =====================================================
+    # 🔵 CFJ – FUENTE VIVA
+    # =====================================================
+    if es_cfj:
+        return responder_cfj(question)
+
+    # =====================================================
+    # 🟡 PROMPT EXTRA (solo configuración)
+    # =====================================================
+    prompt_extra = ""
+    if es_iso:
+        prompt_extra = PROMPT_ISO
+    elif es_servicio:
+        prompt_extra = PROMPT_SERVICIO
+    elif es_normativa:
+        prompt_extra = PROMPT_NORMATIVA
+
+    # =====================================================
+    # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
+    # =====================================================
     STOPWORDS = {
-        "de", "la", "el", "los", "las", "y", "o", "en", "a", "del",
-        "un", "una", "por", "para", "con", "al"
+        "de","la","el","los","las","y","o","en","a","del",
+        "un","una","por","para","con","al"
     }
 
     terminos_clave = [
@@ -362,15 +412,14 @@ def chat():
     ]
 
     coincidencias_titulo = []
-
     for d in DATA:
-        titulo_norm = normalizar_texto(d.get("titulo", ""))
+        titulo_norm = normalizar_texto(d.get("titulo",""))
         if not titulo_norm:
             continue
 
-        matches = sum(1 for t in terminos_clave if t in titulo_norm)
+        titulo_tokens = titulo_norm.split()
+        matches = sum(1 for t in terminos_clave if t in titulo_tokens)
 
-        # exige al menos 1 término fuerte
         if matches >= 1:
             coincidencias_titulo.append(d)
 
@@ -378,7 +427,7 @@ def chat():
         partes = []
         for d in coincidencias_titulo[:5]:
             partes.append(
-                f"• {d.get('titulo','')} — "
+                f"• {d.get('titulo')} — "
                 f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
             )
 
@@ -387,52 +436,27 @@ def chat():
             "Algunas publicaciones pueden no contar aún con el desarrollo completo del contenido.<br><br>"
             + "<br>".join(partes)
         )
-
         return jsonify({"answer": answer})
 
     # =====================================================
-    # ⬇️ ACÁ SIGUE TU FLUJO NORMAL (CFJ / RAG / etc.)
+    # 🟢 RAG GENERAL (COMO ANTES)
     # =====================================================
-
-        
-            # 🔴 PRIORIDAD CFJ
-    if (
-        "cfj" in q_norm
-        or "centro de formacion judicial" in q_norm
-        or "centro de formación judicial" in q_norm
-    ):
-        return responder_cfj(question)  
-
-    # ---- PROMPT EXTRA ----
-    prompt_extra = ""
-    if es_busqueda_iso(q_norm):
-        prompt_extra = PROMPT_ISO
-    elif "plenario" in q_norm:
-        prompt_extra = PROMPT_PLENARIO
-    elif es_busqueda_servicio(q_norm):
-        prompt_extra = PROMPT_SERVICIO
-    elif es_busqueda_normativa(q_norm):
-        prompt_extra = PROMPT_NORMATIVA
-
-    # ---- RAG GENERAL ----
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
         input=q_norm
     ).data[0].embedding
 
     chunks = semantic_search(np.array(q_emb), top_k=80)
-        # 🔧 CAMBIO 3 – Re-rank por título cuando no hay texto
-    palabras_query = q_norm.split()
 
+    # Re-rank por título si no hay texto
     for c in chunks:
         c["_boost"] = 0
         if not c.get("texto"):
             titulo_norm = normalizar_texto(c.get("titulo",""))
-            if any(p in titulo_norm for p in palabras_query):
+            if any(p in titulo_norm for p in terminos_clave):
                 c["_boost"] = 1
 
-    # Prioriza notas con título relevante y sin texto
-    chunks.sort(key=lambda x: x.get("_boost", 0), reverse=True)
+    chunks.sort(key=lambda x: x.get("_boost",0), reverse=True)
 
     docs = group_chunks_by_url(chunks)[:8]
 
@@ -465,7 +489,7 @@ PREGUNTA:
     for d in docs:
         if d.get("url"):
             links.append(
-                f'• {d.get("titulo","")} — '
+                f'• {d.get("titulo")} — '
                 f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
             )
 
@@ -473,6 +497,7 @@ PREGUNTA:
         answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
 
     return jsonify({"answer": answer})
+
 
 # =========================================================
 # RUN
