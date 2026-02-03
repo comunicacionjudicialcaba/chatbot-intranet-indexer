@@ -6,3 +6,4 @@ flask
 numpy
 requests
 openai>=1.0.0
+beautifulsoup4
