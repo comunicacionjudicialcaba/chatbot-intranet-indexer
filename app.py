@@ -127,7 +127,7 @@ NORMATIVA_KEYWORDS = ["resolucion", "res. cm", "normativa"]
 ISO_KEYWORDS = ["iso", "normasiso9001", "gestion de calidad", "sgc"]
 SERVICIO_KEYWORDS = ["servicio", "corte", "mantenimiento", "fumigacion"]
 CFJ_KEYWORDS = [
-    "curso", "cursos", "capacitacion", "capacitación", "capacitaciones"
+    "curso", "cursos", "capacitacion", "capacitación", "capacitaciones",
     "cfj", "formacion judicial", "formación judicial",
     "taller", "seminario", "beca", "becas", "centro de formacion judicial", "centro de formación judicial"
 ]
@@ -319,19 +319,14 @@ def chat():
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
-
-    # 🔴 PRIORIDAD CFJ
-if (
-    "cfj" in q_norm
-    or "centro de formacion judicial" in q_norm
-    or "centro de formación judicial" in q_norm
-):
-        return responder_cfj(question)
-    
-    # ---- CFJ ----
-    
-    if es_busqueda_cfj(q_norm):
-        return responder_cfj(question)
+        
+            # 🔴 PRIORIDAD CFJ
+    if (
+        "cfj" in q_norm
+        or "centro de formacion judicial" in q_norm
+        or "centro de formación judicial" in q_norm
+    ):
+        return responder_cfj(question)  
 
     # ---- PROMPT EXTRA ----
     prompt_extra = ""
