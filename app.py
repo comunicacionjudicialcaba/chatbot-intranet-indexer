@@ -344,11 +344,30 @@ def chat():
     question = (data.get("question") or "").strip()
     q_norm = normalizar_texto(question)
         # 🔧 CAMBIO FINAL – Fallback léxico por título (notas sin texto / nuevas)
-    coincidencias_titulo = []
-    for d in DATA:
-        titulo_norm = normalizar_texto(d.get("titulo",""))
-        if titulo_norm and any(p in titulo_norm for p in q_norm.split()):
-            coincidencias_titulo.append(d)
+    # 🔧 Fallback léxico por título (con stopwords y umbral)
+STOPWORDS = {
+    "de", "la", "el", "los", "las", "y", "o", "en", "a", "del",
+    "un", "una", "por", "para", "con", "al"
+}
+
+terminos_clave = [
+    p for p in q_norm.split()
+    if p not in STOPWORDS and len(p) > 3
+]
+
+coincidencias_titulo = []
+
+for d in DATA:
+    titulo_norm = normalizar_texto(d.get("titulo",""))
+    if not titulo_norm:
+        continue
+
+    matches = sum(1 for t in terminos_clave if t in titulo_norm)
+
+    # exige al menos 1 término fuerte
+    if matches >= 1:
+        coincidencias_titulo.append(d)
+
 
     if coincidencias_titulo:
         # armamos respuesta directa sin RAG
