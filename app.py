@@ -6,6 +6,7 @@ import numpy as np
 from openai import OpenAI
 from collections import defaultdict
 import unicodedata
+from bs4 import BeautifulSoup
 
 GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 
@@ -114,7 +115,7 @@ def tipo_plenario(item):
     return "otro"
 
 # ------------------------
-# DETECCIÓN PERSONA / ÁREA / NORMATIVA
+# DETECCIÓN DE CONSULTA PERSONA / AREA / NORMATIVA
 # ------------------------
 
 CARGO_KEYWORDS = [
@@ -125,6 +126,11 @@ CARGO_KEYWORDS = [
 NORMATIVA_KEYWORDS = ["resolucion", "res. cm", "normativa"]
 ISO_KEYWORDS = ["iso", "normasiso9001", "gestion de calidad", "sgc"]
 SERVICIO_KEYWORDS = ["servicio", "corte", "mantenimiento", "fumigacion"]
+CFJ_KEYWORDS = [
+    "curso", "cursos", "capacitacion", "capacitación",
+    "cfj", "formacion judicial", "formación judicial",
+    "taller", "seminario", "beca", "becas"
+]
 
 def es_busqueda_area(q_norm):
     return any(k in q_norm for k in CARGO_KEYWORDS)
@@ -138,11 +144,102 @@ def es_busqueda_iso(q_norm):
 def es_busqueda_servicio(q_norm):
     return any(k in q_norm for k in SERVICIO_KEYWORDS)
 
+def es_busqueda_cfj(q_norm):
+    return any(k in q_norm for k in CFJ_KEYWORDS)
+
 def es_busqueda_persona(q_original):
     palabras = q_original.strip().split()
     if len(palabras) > 7:
         return False
     return sum(1 for p in palabras if p[:1].isupper()) >= 1
+
+# =========================================================
+# CFJ – FUENTE VIVA (RESPUESTA CON PROMPT)
+# =========================================================
+
+CFJ_CAP_URL = "https://cfj.gov.ar/capacitacion.php"
+CFJ_BECAS_URL = "https://cfj.gov.ar/becas.php"
+
+PROMPT_CFJ = """
+La consulta refiere a cursos o capacitaciones del Centro de Formación Judicial (CFJ).
+
+- Listá únicamente información disponible en el sitio oficial del CFJ.
+- No inventes cursos, fechas ni requisitos.
+- Incluí links directos a cada curso o beca cuando sea posible.
+- Indicá claramente que la inscripción se realiza desde el sitio del CFJ.
+- Redactá en un tono institucional, claro y útil.
+"""
+
+def obtener_items_cfj(url):
+    r = requests.get(url, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    items = []
+    for a in soup.select("a"):
+        href = a.get("href","")
+        texto = a.get_text(strip=True)
+
+        if not texto:
+            continue
+        if "curso.php" not in href and "beca" not in href:
+            continue
+
+        link = href if href.startswith("http") else f"https://cfj.gov.ar/{href.lstrip('/')}"
+        items.append({"titulo": texto, "url": link})
+
+    vistos = set()
+    out = []
+    for i in items:
+        if i["url"] not in vistos:
+            vistos.add(i["url"])
+            out.append(i)
+
+    return out[:10]
+
+def responder_cfj(question):
+    cursos = obtener_items_cfj(CFJ_CAP_URL)
+    becas = obtener_items_cfj(CFJ_BECAS_URL)
+
+    contexto = []
+
+    if cursos:
+        contexto.append("CURSOS DISPONIBLES:")
+        for c in cursos:
+            contexto.append(f"- {c['titulo']} ({c['url']})")
+
+    if becas:
+        contexto.append("\nBECAS DISPONIBLES:")
+        for b in becas:
+            contexto.append(f"- {b['titulo']} ({b['url']})")
+
+    contexto_texto = "\n".join(contexto)
+
+    prompt = f"""
+INFORMACIÓN OFICIAL DEL CFJ:
+{contexto_texto}
+
+PREGUNTA:
+{question}
+"""
+
+    completion = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": PROMPT_CFJ},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+    )
+
+    answer = completion.choices[0].message.content
+
+    answer += (
+        "<br><br><b>ℹ️ Inscripción y oferta completa:</b><br>"
+        f'<a href="{CFJ_CAP_URL}" target="_blank">👉 Centro de Formación Judicial</a>'
+    )
+
+    return jsonify({"answer": answer})
 
 # ------------------------
 # SEMANTIC SEARCH (RAG)
@@ -179,6 +276,7 @@ def group_chunks_by_url(chunks):
 # ------------------------
 
 def build_context(docs):
+    partesB
     partes = []
     for d in docs:
         partes.append(
@@ -189,7 +287,7 @@ def build_context(docs):
     return "\n---\n".join(partes)
 
 # ------------------------
-# PROMPTS
+# PROMPT SISTEMA
 # ------------------------
 
 SYSTEM_PROMPT = """
@@ -264,16 +362,20 @@ def data():
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-
     question = (data.get("question") or "").strip()
     q_norm = normalizar_texto(question)
-
-    print("🔎 Pregunta:", question)
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
-    # ------------------------
+    # -------- CFJ --------
+    if es_busqueda_cfj(q_norm):
+        return responder_cfj(question)
+
+    # -------- resto del flujo (RAG / plenarios / etc.) --------
+    return jsonify({"answer": "Consulta procesada por flujo general."})
+
+ # ------------------------
     # PROMPT EXTRA
     # ------------------------
 
