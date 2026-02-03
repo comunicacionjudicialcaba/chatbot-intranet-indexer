@@ -343,6 +343,30 @@ def chat():
     data = request.get_json()
     question = (data.get("question") or "").strip()
     q_norm = normalizar_texto(question)
+        # 🔧 CAMBIO FINAL – Fallback léxico por título (notas sin texto / nuevas)
+    coincidencias_titulo = []
+    for d in DATA:
+        titulo_norm = normalizar_texto(d.get("titulo",""))
+        if titulo_norm and any(p in titulo_norm for p in q_norm.split()):
+            coincidencias_titulo.append(d)
+
+    if coincidencias_titulo:
+        # armamos respuesta directa sin RAG
+        partes = []
+        for d in coincidencias_titulo[:5]:
+            partes.append(
+                f"• {d.get('titulo','')} — "
+                f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+            )
+
+        answer = (
+            "Se registran las siguientes notas vinculadas al tema consultado. "
+            "Algunas publicaciones pueden no contar aún con el desarrollo completo del contenido.<br><br>"
+            + "<br>".join(partes)
+        )
+
+        return jsonify({"answer": answer})
+
 
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
