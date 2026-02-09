@@ -81,6 +81,48 @@ def detectar_anio(texto_norm):
         if str(y) in texto_norm:
             return y
     return None
+# =========================================================
+# 🔎 BUSQUEDA ESTRUCTURADA POR TITULO + AÑO
+# =========================================================
+
+STOPWORDS_ESTRUCTURADAS = {
+    "de","la","el","los","las","y","o","en","a","del",
+    "un","una","por","para","con","al","dime","decime",
+    "mostrar","mostrame","listar","listame"
+}
+
+def extraer_keywords_estructuradas(q_norm):
+    palabras = q_norm.split()
+    keywords = [
+        p.rstrip("s")  # singular básico
+        for p in palabras
+        if p not in STOPWORDS_ESTRUCTURADAS
+        and not p.isdigit()
+        and len(p) >= 4
+    ]
+    return keywords
+
+
+def buscar_por_titulo_y_anio(keywords, anio=None):
+    resultados = []
+
+    for d in DATA:
+        titulo_norm = normalizar_texto(d.get("titulo",""))
+
+        if not titulo_norm:
+            continue
+
+        if anio and d.get("anio") != anio:
+            continue
+
+        # Coincidencia si alguna keyword está en el título
+        if any(k in titulo_norm for k in keywords):
+            resultados.append(d)
+
+    # Ordenar por fecha descendente
+    resultados.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
+
+    return resultados    
 
 # =========================================================
 # TIPO DE PLENARIO
@@ -397,6 +439,38 @@ def chat():
         prompt_extra = PROMPT_SERVICIO
     elif es_normativa:
         prompt_extra = PROMPT_NORMATIVA
+        
+    # =====================================================
+    # 🟦 LISTADO DIRECTO POR TITULO (NUEVA CAPA)
+    # =====================================================
+
+    anio_detectado = detectar_anio(q_norm)
+    keywords_estructuradas = extraer_keywords_estructuradas(q_norm)
+
+    resultados_estructurados = buscar_por_titulo_y_anio(
+        keywords_estructuradas,
+        anio_detectado
+    )
+
+    if resultados_estructurados:
+        partes = []
+
+        encabezado = "Se registran las siguientes notas"
+
+        if anio_detectado:
+            encabezado += f" del año {anio_detectado}"
+
+        encabezado += " vinculadas al tema consultado:<br><br>"
+
+        for d in resultados_estructurados[:15]:
+            partes.append(
+                f"• {d.get('fecha')} — {d.get('titulo')} "
+                f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+            )
+
+        return jsonify({
+            "answer": encabezado + "<br>".join(partes)
+        })
 
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
