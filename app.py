@@ -130,6 +130,7 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
 
     return False
 
+    if any(coincide_palabra(k, titulo_norm) for k in keywords):
 
     # Ordenar por fecha descendente
     resultados.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
