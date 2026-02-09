@@ -93,21 +93,46 @@ STOPWORDS_ESTRUCTURADAS = {
 
 def extraer_keywords_estructuradas(q_norm):
     palabras = q_norm.split()
+
     keywords = [
-        p.rstrip("s")  # singular básico
+        normalizar_texto(p)  # normaliza y deja plural intacto
         for p in palabras
         if p not in STOPWORDS_ESTRUCTURADAS
         and not p.isdigit()
         and len(p) >= 4
     ]
+
     return keywords
+
+
+def coincide_palabra(keyword, titulo_norm):
+    # coincidencia directa
+    if keyword in titulo_norm:
+        return True
+
+    # plural tipo "ciones" → "cion"
+    if keyword.endswith("ciones"):
+        if keyword[:-6] + "cion" in titulo_norm:
+            return True
+
+    # plural simple "es"
+    if keyword.endswith("es"):
+        if keyword[:-2] in titulo_norm:
+            return True
+
+    # plural simple "s"
+    if keyword.endswith("s"):
+        if keyword[:-1] in titulo_norm:
+            return True
+
+    return False
 
 
 def buscar_por_titulo_y_anio(keywords, anio=None):
     resultados = []
 
     for d in DATA:
-        titulo_norm = normalizar_texto(d.get("titulo",""))
+        titulo_norm = normalizar_texto(d.get("titulo", ""))
 
         if not titulo_norm:
             continue
@@ -115,27 +140,15 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
         if anio and d.get("anio") != anio:
             continue
 
-    # Coincidencia si alguna keyword está en el título
-    def coincide_palabra(keyword, titulo_norm):
-    # comparación directa
-    if keyword in titulo_norm:
-        return True
-
-    # singular/plural básicos
-    if keyword.endswith("es") and keyword[:-2] in titulo_norm:
-        return True
-
-    if keyword.endswith("s") and keyword[:-1] in titulo_norm:
-        return True
-
-    return False
-
-    if any(coincide_palabra(k, titulo_norm) for k in keywords):
+        # ✅ Ahora sí: chequea coincidencia
+        if any(coincide_palabra(k, titulo_norm) for k in keywords):
+            resultados.append(d)
 
     # Ordenar por fecha descendente
-    resultados.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
+    resultados.sort(key=lambda x: x.get("fecha_iso", ""), reverse=True)
 
-    return resultados    
+    return resultados
+
 
 # =========================================================
 # TIPO DE PLENARIO
