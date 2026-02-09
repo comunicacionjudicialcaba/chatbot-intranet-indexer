@@ -115,8 +115,8 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
         if anio and d.get("anio") != anio:
             continue
 
-        # Coincidencia si alguna keyword está en el título
-        def coincide_palabra(keyword, titulo_norm):
+    # Coincidencia si alguna keyword está en el título
+    def coincide_palabra(keyword, titulo_norm):
     # comparación directa
     if keyword in titulo_norm:
         return True
