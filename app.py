@@ -116,8 +116,20 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
             continue
 
         # Coincidencia si alguna keyword está en el título
-        if any(k in titulo_norm for k in keywords):
-            resultados.append(d)
+        def coincide_palabra(keyword, titulo_norm):
+    # comparación directa
+    if keyword in titulo_norm:
+        return True
+
+    # singular/plural básicos
+    if keyword.endswith("es") and keyword[:-2] in titulo_norm:
+        return True
+
+    if keyword.endswith("s") and keyword[:-1] in titulo_norm:
+        return True
+
+    return False
+
 
     # Ordenar por fecha descendente
     resultados.sort(key=lambda x: x.get("fecha_iso",""), reverse=True)
