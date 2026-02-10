@@ -603,6 +603,12 @@ PREGUNTA:
 # RUN
 # =========================================================
 
+@app.route("/data")
+def data():
+    # el frontend espera JSON con las notas
+    return jsonify(DATA)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
