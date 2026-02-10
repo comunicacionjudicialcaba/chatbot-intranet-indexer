@@ -1,4 +1,4 @@
-name: Generar chunks desde data.json
+name: 2- Generar chunks desde data.json
 
 on:
   workflow_dispatch:
