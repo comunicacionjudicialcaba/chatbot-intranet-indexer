@@ -1,4 +1,4 @@
-name: Generar embeddings
+name: 3- Generar embeddings
 
 on:
   workflow_dispatch:
