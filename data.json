@@ -19837,33 +19837,6 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "10/02/2026",
-    "titulo": "Diplomatura ",
-    "autor": "Diego",
-    "seccion": "Capacitaciones",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "10/02/2026",
-    "titulo": "Diplomatura ",
-    "autor": "Diego",
-    "seccion": "Capacitaciones",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "10/02/2026",
-    "titulo": "Diplomatura ",
-    "autor": "Diego",
-    "seccion": "Capacitaciones",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
     "fecha": "05/01/2026",
     "titulo": "",
     "autor": "",
@@ -20287,7 +20260,7 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "",
+    "fecha": "10/02/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
@@ -20651,6 +20624,33 @@
     "titulo": "",
     "autor": "",
     "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "10/02/2026",
+    "titulo": "Diplomatura ",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "10/02/2026",
+    "titulo": "Diplomatura ",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "10/02/2026",
+    "titulo": "Diplomatura ",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
     "url": "",
     "texto": ""
   },
