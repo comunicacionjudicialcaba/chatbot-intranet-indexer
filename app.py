@@ -157,19 +157,20 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
 
         if anio and d.get("anio") != anio:
             continue
-                    
-        
-        # 🔒 Match endurecido: al menos 2 coincidencias reales
-        matches = sum(
-            1 for k in keywords
+
+        # 🔍 detectar keywords que realmente matchean
+        matched = [
+            k for k in keywords
             if coincide_palabra(k, titulo_norm)
-        )
+        ]
 
-        min_matches = 2 if len(keywords) > 1 else 1
+        # 🧠 regla correcta:
+        # - si hay 1 solo concepto → alcanza con 1 match
+        # - si hay varios → exigir al menos 2
+        min_matches = 1 if len(matched) <= 1 else 2
 
-        if matches >= min_matches:
+        if len(matched) >= min_matches:
             resultados.append(d)
-
 
     # Ordenar por fecha descendente
     resultados.sort(key=lambda x: x.get("fecha_iso", ""), reverse=True)
