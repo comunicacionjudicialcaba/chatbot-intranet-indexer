@@ -85,17 +85,28 @@ def detectar_anio(texto_norm):
 # 🔎 BUSQUEDA ESTRUCTURADA POR TITULO + AÑO
 # =========================================================
 
+# =========================================================
+# 🔎 BUSQUEDA ESTRUCTURADA POR TITULO + AÑO
+# =========================================================
+
 STOPWORDS_ESTRUCTURADAS = {
     "de","la","el","los","las","y","o","en","a","del",
     "un","una","por","para","con","al","dime","decime",
     "mostrar","mostrame","listar","listame"
 }
 
+EQUIVALENCIAS = {
+    "ludopatia": ["juego responsable", "adiccion al juego"],
+    "juego responsable": ["ludopatia", "adiccion al juego"],
+    "adiccion": ["ludopatia", "juego responsable"]
+}
+
+
 def extraer_keywords_estructuradas(q_norm):
     palabras = q_norm.split()
 
     keywords = [
-        normalizar_texto(p)  # normaliza y deja plural intacto
+        normalizar_texto(p)
         for p in palabras
         if p not in STOPWORDS_ESTRUCTURADAS
         and not p.isdigit()
@@ -103,6 +114,14 @@ def extraer_keywords_estructuradas(q_norm):
     ]
 
     return keywords
+
+
+def expandir_keywords(keywords):
+    expanded = set(keywords)
+    for k in keywords:
+        for alt in EQUIVALENCIAS.get(k, []):
+            expanded.add(alt)
+    return list(expanded)
 
 
 def coincide_palabra(keyword, titulo_norm):
@@ -140,8 +159,13 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
         if anio and d.get("anio") != anio:
             continue
 
-        # ✅ Ahora sí: chequea coincidencia
-        if any(coincide_palabra(k, titulo_norm) for k in keywords):
+        # 🔒 Match endurecido: al menos 2 coincidencias reales
+        matches = sum(
+            1 for k in keywords
+            if coincide_palabra(k, titulo_norm)
+        )
+
+        if matches >= 2:
             resultados.append(d)
 
     # Ordenar por fecha descendente
