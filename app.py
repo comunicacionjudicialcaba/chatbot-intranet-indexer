@@ -157,9 +157,10 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
 
         if anio and d.get("anio") != anio:
             continue
-
+                    
+        
         # 🔒 Match endurecido: al menos 2 coincidencias reales
-               matches = sum(
+        matches = sum(
             1 for k in keywords
             if coincide_palabra(k, titulo_norm)
         )
