@@ -92,13 +92,15 @@ def detectar_anio(texto_norm):
 STOPWORDS_ESTRUCTURADAS = {
     "de","la","el","los","las","y","o","en","a","del",
     "un","una","por","para","con","al","dime","decime",
-    "mostrar","mostrame","listar","listame"
+    "mostrar","mostrame","listar","listame" "dame",
+    "info","informacion","sobre","acerca","tema"
 }
 
 EQUIVALENCIAS = {
     "ludopatia": ["juego responsable", "adiccion al juego"],
     "juego responsable": ["ludopatia", "adiccion al juego"],
-    "adiccion": ["ludopatia", "juego responsable"]
+    "adiccion": ["ludopatia", "juego responsable"],
+    "juego": ["ludopatia"]
 }
 
 
