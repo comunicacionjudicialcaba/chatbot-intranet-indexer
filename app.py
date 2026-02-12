@@ -81,9 +81,6 @@ def detectar_anio(texto_norm):
         if str(y) in texto_norm:
             return y
     return None
-# =========================================================
-# 🔎 BUSQUEDA ESTRUCTURADA POR TITULO + AÑO
-# =========================================================
 
 # =========================================================
 # 🔎 BUSQUEDA ESTRUCTURADA POR TITULO + AÑO
@@ -92,7 +89,7 @@ def detectar_anio(texto_norm):
 STOPWORDS_ESTRUCTURADAS = {
     "de","la","el","los","las","y","o","en","a","del",
     "un","una","por","para","con","al","dime","decime",
-    "mostrar","mostrame","listar","listame" "dame",
+    "mostrar","mostrame","listar","listame","dame",
     "info","informacion","sobre","acerca","tema"
 }
 
@@ -162,12 +159,14 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
             continue
 
         # 🔒 Match endurecido: al menos 2 coincidencias reales
-        matches = sum(
+       matches = sum(
             1 for k in keywords
             if coincide_palabra(k, titulo_norm)
         )
 
-        if matches >= 2:
+        min_matches = 2 if len(keywords) > 1 else 1
+
+        if matches >= min_matches:
             resultados.append(d)
 
     # Ordenar por fecha descendente
@@ -497,12 +496,15 @@ def chat():
     # =====================================================
 
     anio_detectado = detectar_anio(q_norm)
-    keywords_estructuradas = extraer_keywords_estructuradas(q_norm)
 
-    resultados_estructurados = buscar_por_titulo_y_anio(
-        keywords_estructuradas,
-        anio_detectado
-    )
+keywords_base = extraer_keywords_estructuradas(q_norm)
+keywords_estructuradas = expandir_keywords(keywords_base)
+
+resultados_estructurados = buscar_por_titulo_y_anio(
+    keywords_estructuradas,
+    anio_detectado
+)
+
 
     if resultados_estructurados:
         partes = []
