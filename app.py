@@ -159,7 +159,7 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
             continue
 
         # 🔒 Match endurecido: al menos 2 coincidencias reales
-       matches = sum(
+               matches = sum(
             1 for k in keywords
             if coincide_palabra(k, titulo_norm)
         )
@@ -168,6 +168,7 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
 
         if matches >= min_matches:
             resultados.append(d)
+
 
     # Ordenar por fecha descendente
     resultados.sort(key=lambda x: x.get("fecha_iso", ""), reverse=True)
