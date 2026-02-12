@@ -500,14 +500,13 @@ def chat():
 
     anio_detectado = detectar_anio(q_norm)
 
-keywords_base = extraer_keywords_estructuradas(q_norm)
-keywords_estructuradas = expandir_keywords(keywords_base)
+    keywords_base = extraer_keywords_estructuradas(q_norm)
+    keywords_estructuradas = expandir_keywords(keywords_base)
 
-resultados_estructurados = buscar_por_titulo_y_anio(
-    keywords_estructuradas,
-    anio_detectado
-)
-
+    resultados_estructurados = buscar_por_titulo_y_anio(
+        keywords_estructuradas,
+        anio_detectado
+    )
 
     if resultados_estructurados:
         partes = []
@@ -528,7 +527,6 @@ resultados_estructurados = buscar_por_titulo_y_anio(
         return jsonify({
             "answer": encabezado + "<br>".join(partes)
         })
-
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
     # =====================================================
