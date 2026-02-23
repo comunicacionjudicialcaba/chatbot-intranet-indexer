@@ -400,8 +400,20 @@
     "texto": "",
     "tipo": "sheet",
     "fecha": "12/02/2026",
-    "titulo": "Ahora las provincias podrán enviar directamente sus cédulas y mandamientos para diligenciar en la Ciudad",
+    "titulo": "Habilitan el envío directo de cédulas y mandamientos desde las provincias a la Ciudad",
     "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-02-12",
+    "anio": 2026,
+    "mes": 2
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/comenzo-la-temporada-2026-de-frecuencia-judicial-con-un-episodio-dedicado-a-la-seleccion-de-jueces-juezas-y-magistrados",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "12/02/2026",
+    "titulo": "Comenzó la temporada 2026 de Frecuencia Judicial con un episodio dedicado a la selección de magistrados y magistradas",
+    "autor": "Sofía",
     "seccion": "Artículo",
     "fecha_iso": "2026-02-12",
     "anio": 2026,
@@ -411,11 +423,71 @@
     "url": "https://intranet.jusbaires.gob.ar/dia-internacional-del-juego-responsable-un-recordatorio-para-cuidarnos-y-un-espacio-de-acompanamiento-para-quienes-lo-necesiten",
     "texto": "",
     "tipo": "sheet",
-    "fecha": "16/02/2026",
-    "titulo": "Dia Internacional del Juego Responsable: un recordatorio para cuidarnos y un espacio de acompañamiento para quienes lo necesiten",
+    "fecha": "15/02/2026",
+    "titulo": "Juego Responsable: un recordatorio para cuidarnos y un espacio de acompañamiento para quienes lo necesiten",
     "autor": "Diego",
     "seccion": "Artículo",
-    "fecha_iso": "2026-02-16",
+    "fecha_iso": "2026-02-15",
+    "anio": 2026,
+    "mes": 2
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/hay-tiempo-hasta-el-27-de-febrero-para-sumarse-al-programa-justicia-sustentable",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/02/2026",
+    "titulo": "Hay tiempo hasta el 27 de febrero para sumarse al Programa Justicia Sustentable",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-02-18",
+    "anio": 2026,
+    "mes": 2
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/eventos/1491",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "19/02/2026",
+    "titulo": "Programa de actualización en Razonamiento probatorio en el proceso penal y derechos fundamentales",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-02-19",
+    "anio": 2026,
+    "mes": 2
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/se-encuentra-abierto-el-plazo-para-solicitar-la-ayuda-escolar-anual-2026",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
+    "titulo": "Se encuentra abierto el plazo para solicitar la ayuda escolar anual",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-02-20",
+    "anio": 2026,
+    "mes": 2
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/convocatoria-a-plenario-de-consejeros-26-02-26",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
+    "titulo": "Convocatoria a Plenario de Consejeros",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-02-20",
+    "anio": 2026,
+    "mes": 2
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/eventos/1493",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
+    "titulo": "Ciclo de Videoconferencias 2026 de la OM: \"Diversidades y derechos\", por Violeta Alegre",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-02-20",
     "anio": 2026,
     "mes": 2
   },
@@ -19885,6 +19957,33 @@
   },
   {
     "tipo": "sheet",
+    "fecha": "11/02/2026",
+    "titulo": "Diplomatura ",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "11/02/2026",
+    "titulo": "Diplomatura ",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "11/02/2026",
+    "titulo": "Diplomatura ",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
     "fecha": "05/01/2026",
     "titulo": "",
     "autor": "",
@@ -20389,7 +20488,115 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "",
+    "fecha": "13/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "13/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "13/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "13/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "13/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "20/02/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
@@ -20555,159 +20762,6 @@
     "titulo": "",
     "autor": "",
     "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "11/02/2026",
-    "titulo": "Diplomatura ",
-    "autor": "Diego",
-    "seccion": "Capacitaciones",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "11/02/2026",
-    "titulo": "Diplomatura ",
-    "autor": "Diego",
-    "seccion": "Capacitaciones",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "11/02/2026",
-    "titulo": "Diplomatura ",
-    "autor": "Diego",
-    "seccion": "Capacitaciones",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "Sofía",
-    "seccion": "Artículo",
     "url": "",
     "texto": ""
   },
