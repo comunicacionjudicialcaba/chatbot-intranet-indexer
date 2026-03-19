@@ -14,7 +14,9 @@ GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 # INIT
 # =========================================================
 
-client = OpenAI()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+print("API KEY:", os.getenv("OPENAI_API_KEY"))
+
 app = Flask(__name__)
 
 DATA_FILE = "data.json"
