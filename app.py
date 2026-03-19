@@ -563,7 +563,8 @@ return jsonify({"answer": answer})
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
     # =====================================================
-    STOPWORDS = {
+    
+STOPWORDS = {
         "de","la","el","los","las","y","o","en","a","del",
         "un","una","por","para","con","al"
     }
