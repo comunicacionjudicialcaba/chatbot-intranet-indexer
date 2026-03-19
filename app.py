@@ -383,11 +383,20 @@ PREGUNTA:
     )
 
     answer = completion.choices[0].message.content
-    answer += (
-        "<br><br><b>🔗 Oferta completa:</b><br>"
-        f'<a href="{CFJ_CAP_URL}" target="_blank">Centro de Formación Judicial</a>'
-    )
-    return jsonify({"answer": answer})
+
+# 🔗 agregar links
+links = []
+for d in resultados_estructurados[:10]:
+    if d.get("url"):
+        links.append(
+            f'• {d.get("fecha")} — {d.get("titulo")} '
+            f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+        )
+
+if links:
+    answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
+
+return jsonify({"answer": answer})
 
 # =========================================================
 # RAG
@@ -538,8 +547,18 @@ Respondé de forma clara, institucional y explicativa.
 
         answer = completion.choices[0].message.content
 
-        return jsonify({"answer": answer})
+links = []
+for d in coincidencias_titulo[:5]:
+    if d.get("url"):
+        links.append(
+            f'• {d.get("titulo")} '
+            f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+        )
 
+if links:
+    answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
+
+return jsonify({"answer": answer})
 
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
