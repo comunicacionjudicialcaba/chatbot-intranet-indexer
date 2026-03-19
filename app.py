@@ -509,6 +509,10 @@ def chat():
     # 🟦 LISTADO DIRECTO POR TITULO (NUEVA CAPA)
     # =====================================================
 
+        # =====================================================
+    # 🟦 LISTADO DIRECTO POR TITULO (NUEVA CAPA)
+    # =====================================================
+
     anio_detectado = detectar_anio(q_norm)
 
     keywords_base = extraer_keywords_estructuradas(q_norm)
@@ -547,29 +551,29 @@ Respondé de forma clara, institucional y explicativa.
 
         answer = completion.choices[0].message.content
 
-links = []
-for d in coincidencias_titulo[:5]:
-    if d.get("url"):
-        links.append(
-            f'• {d.get("titulo")} '
-            f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
-        )
+        links = []
+        for d in resultados_estructurados[:10]:
+            if d.get("url"):
+                links.append(
+                    f'• {d.get("fecha")} — {d.get("titulo")} '
+                    f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+                )
 
-if links:
-    answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
+        if links:
+            answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
 
-return jsonify({"answer": answer})
+        return jsonify({"answer": answer})
 
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
     # =====================================================
-    
-STOPWORDS = {
+
+    STOPWORDS = {
         "de","la","el","los","las","y","o","en","a","del",
         "un","una","por","para","con","al"
     }
 
-terminos_clave = [
+    terminos_clave = [
         p for p in q_norm.split()
         if p not in STOPWORDS and len(p) > 3
     ]
@@ -614,9 +618,18 @@ Respondé de forma clara y explicativa.
 
         answer = completion.choices[0].message.content
 
+        links = []
+        for d in coincidencias_titulo[:5]:
+            if d.get("url"):
+                links.append(
+                    f'• {d.get("titulo")} '
+                    f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+                )
+
+        if links:
+            answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
+
         return jsonify({"answer": answer})
-
-
 
     # =====================================================
     # 🟢 RAG GENERAL (COMO ANTES)
