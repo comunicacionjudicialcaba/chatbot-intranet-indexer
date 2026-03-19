@@ -525,7 +525,6 @@ Pregunta del usuario:
 {question}
 
 Respondé de forma clara, institucional y explicativa.
-Si corresponde, mencioná las notas relevantes.
 """
 
     completion = client.chat.completions.create(
@@ -540,6 +539,7 @@ Si corresponde, mencioná las notas relevantes.
     answer = completion.choices[0].message.content
 
     return jsonify({"answer": answer})
+
 
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
