@@ -566,7 +566,7 @@ Respondé de forma clara, institucional y explicativa.
         if matches >= 1:
             coincidencias_titulo.append(d)
 
-    if coincidencias_titulo:
+if coincidencias_titulo:
 
     contexto = "\n".join([
         f"{d.get('titulo')}"
