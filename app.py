@@ -510,14 +510,14 @@ def chat():
         anio_detectado
     )
 
-if resultados_estructurados:
+    if resultados_estructurados:
 
-    contexto = "\n".join([
-        f"{d.get('fecha')} — {d.get('titulo')}"
-        for d in resultados_estructurados[:10]
-    ])
+        contexto = "\n".join([
+            f"{d.get('fecha')} — {d.get('titulo')}"
+            for d in resultados_estructurados[:10]
+        ])
 
-    prompt = f"""
+        prompt = f"""
 Notas encontradas:
 {contexto}
 
@@ -527,18 +527,18 @@ Pregunta del usuario:
 Respondé de forma clara, institucional y explicativa.
 """
 
-    completion = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.2,
-    )
+        completion = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+        )
 
-    answer = completion.choices[0].message.content
+        answer = completion.choices[0].message.content
 
-    return jsonify({"answer": answer})
+        return jsonify({"answer": answer})
 
 
     # =====================================================
@@ -566,14 +566,14 @@ Respondé de forma clara, institucional y explicativa.
         if matches >= 1:
             coincidencias_titulo.append(d)
 
-if coincidencias_titulo:
+    if coincidencias_titulo:
 
-    contexto = "\n".join([
-        f"{d.get('titulo')}"
-        for d in coincidencias_titulo[:5]
-    ])
+        contexto = "\n".join([
+            f"{d.get('titulo')}"
+            for d in coincidencias_titulo[:5]
+        ])
 
-    prompt = f"""
+        prompt = f"""
 Notas relacionadas:
 {contexto}
 
@@ -583,18 +583,19 @@ Pregunta del usuario:
 Respondé de forma clara y explicativa.
 """
 
-    completion = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.2,
-    )
+        completion = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+        )
 
-    answer = completion.choices[0].message.content
+        answer = completion.choices[0].message.content
 
-    return jsonify({"answer": answer})
+        return jsonify({"answer": answer})
+
 
 
     # =====================================================
