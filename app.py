@@ -511,24 +511,36 @@ def chat():
     )
 
     if resultados_estructurados:
-        partes = []
 
-        encabezado = "Se registran las siguientes notas"
+    contexto = "\n".join([
+        f"{d.get('fecha')} — {d.get('titulo')}"
+        for d in resultados_estructurados[:10]
+    ])
 
-        if anio_detectado:
-            encabezado += f" del año {anio_detectado}"
+    prompt = f"""
+Notas encontradas:
+{contexto}
 
-        encabezado += " vinculadas al tema consultado:<br><br>"
+Pregunta del usuario:
+{question}
 
-        for d in resultados_estructurados[:15]:
-            partes.append(
-                f"• {d.get('fecha')} — {d.get('titulo')} "
-                f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
-            )
+Respondé de forma clara, institucional y explicativa.
+Si corresponde, mencioná las notas relevantes.
+"""
 
-        return jsonify({
-            "answer": encabezado + "<br>".join(partes)
-        })
+    completion = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+    )
+
+    answer = completion.choices[0].message.content
+
+    return jsonify({"answer": answer})
+
     # =====================================================
     # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
     # =====================================================
@@ -555,19 +567,35 @@ def chat():
             coincidencias_titulo.append(d)
 
     if coincidencias_titulo:
-        partes = []
-        for d in coincidencias_titulo[:5]:
-            partes.append(
-                f"• {d.get('titulo')} — "
-                f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
-            )
 
-        answer = (
-            "Se registran las siguientes notas vinculadas al tema consultado. "
-            "Algunas publicaciones pueden no contar aún con el desarrollo completo del contenido.<br><br>"
-            + "<br>".join(partes)
-        )
-        return jsonify({"answer": answer})
+    contexto = "\n".join([
+        f"{d.get('titulo')}"
+        for d in coincidencias_titulo[:5]
+    ])
+
+    prompt = f"""
+Notas relacionadas:
+{contexto}
+
+Pregunta del usuario:
+{question}
+
+Respondé de forma clara y explicativa.
+"""
+
+    completion = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+    )
+
+    answer = completion.choices[0].message.content
+
+    return jsonify({"answer": answer})
+
 
     # =====================================================
     # 🟢 RAG GENERAL (COMO ANTES)
