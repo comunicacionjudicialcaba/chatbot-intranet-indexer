@@ -569,7 +569,7 @@ STOPWORDS = {
         "un","una","por","para","con","al"
     }
 
-    terminos_clave = [
+terminos_clave = [
         p for p in q_norm.split()
         if p not in STOPWORDS and len(p) > 3
     ]
