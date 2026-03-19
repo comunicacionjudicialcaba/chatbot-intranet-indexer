@@ -510,7 +510,7 @@ def chat():
         anio_detectado
     )
 
-    if resultados_estructurados:
+if resultados_estructurados:
 
     contexto = "\n".join([
         f"{d.get('fecha')} — {d.get('titulo')}"
