@@ -513,123 +513,123 @@ def chat():
     # 🟦 LISTADO DIRECTO POR TITULO (NUEVA CAPA)
     # =====================================================
 
-    anio_detectado = detectar_anio(q_norm)
-
-    keywords_base = extraer_keywords_estructuradas(q_norm)
-    keywords_estructuradas = expandir_keywords(keywords_base)
-
-    resultados_estructurados = buscar_por_titulo_y_anio(
-        keywords_estructuradas,
-        anio_detectado
-    )
-
-    if resultados_estructurados:
-
-        contexto = "\n".join([
-            f"{d.get('fecha')} — {d.get('titulo')}"
-            for d in resultados_estructurados[:10]
-        ])
-
-        prompt = f"""
-Notas encontradas:
-{contexto}
-
-Pregunta del usuario:
-{question}
-
-Respondé de forma clara, institucional y explicativa.
-"""
-
-        completion = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
+        anio_detectado = detectar_anio(q_norm)
+    
+        keywords_base = extraer_keywords_estructuradas(q_norm)
+        keywords_estructuradas = expandir_keywords(keywords_base)
+    
+        resultados_estructurados = buscar_por_titulo_y_anio(
+            keywords_estructuradas,
+            anio_detectado
         )
-
-        answer = completion.choices[0].message.content
-
-        links = []
-        for d in resultados_estructurados[:10]:
-            if d.get("url"):
-                links.append(
-                    f'• {d.get("fecha")} — {d.get("titulo")} '
-                    f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
-                )
-
-        if links:
-            answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
-
-        return jsonify({"answer": answer})
-
-    # =====================================================
-    # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
-    # =====================================================
-
-    STOPWORDS = {
-        "de","la","el","los","las","y","o","en","a","del",
-        "un","una","por","para","con","al"
-    }
-
-    terminos_clave = [
-        p for p in q_norm.split()
-        if p not in STOPWORDS and len(p) > 3
-    ]
-
-    coincidencias_titulo = []
-    for d in DATA:
-        titulo_norm = normalizar_texto(d.get("titulo",""))
-        if not titulo_norm:
-            continue
-
-        titulo_tokens = titulo_norm.split()
-        matches = sum(1 for t in terminos_clave if t in titulo_tokens)
-
-        if matches >= 1:
-            coincidencias_titulo.append(d)
-
-    if coincidencias_titulo:
-
-        contexto = "\n".join([
-            f"{d.get('titulo')}"
-            for d in coincidencias_titulo[:5]
-        ])
-
-        prompt = f"""
-Notas relacionadas:
-{contexto}
-
-Pregunta del usuario:
-{question}
-
-Respondé de forma clara y explicativa.
-"""
-
-        completion = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
-
-        answer = completion.choices[0].message.content
-
-        links = []
-        for d in coincidencias_titulo[:5]:
-            if d.get("url"):
-                links.append(
-                    f'• {d.get("titulo")} '
-                    f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
-                )
-
-        if links:
-            answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
-
-        return jsonify({"answer": answer})
+    
+        if resultados_estructurados:
+    
+            contexto = "\n".join([
+                f"{d.get('fecha')} — {d.get('titulo')}"
+                for d in resultados_estructurados[:10]
+            ])
+    
+            prompt = f"""
+    Notas encontradas:
+    {contexto}
+    
+    Pregunta del usuario:
+    {question}
+    
+    Respondé de forma clara, institucional y explicativa.
+    """
+    
+            completion = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+            )
+    
+            answer = completion.choices[0].message.content
+    
+            links = []
+            for d in resultados_estructurados[:10]:
+                if d.get("url"):
+                    links.append(
+                        f'• {d.get("fecha")} — {d.get("titulo")} '
+                        f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+                    )
+    
+            if links:
+                answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
+    
+            return jsonify({"answer": answer})
+    
+        # =====================================================
+        # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
+        # =====================================================
+    
+        STOPWORDS = {
+            "de","la","el","los","las","y","o","en","a","del",
+            "un","una","por","para","con","al"
+        }
+    
+        terminos_clave = [
+            p for p in q_norm.split()
+            if p not in STOPWORDS and len(p) > 3
+        ]
+    
+        coincidencias_titulo = []
+        for d in DATA:
+            titulo_norm = normalizar_texto(d.get("titulo",""))
+            if not titulo_norm:
+                continue
+    
+            titulo_tokens = titulo_norm.split()
+            matches = sum(1 for t in terminos_clave if t in titulo_tokens)
+    
+            if matches >= 1:
+                coincidencias_titulo.append(d)
+    
+        if coincidencias_titulo:
+    
+            contexto = "\n".join([
+                f"{d.get('titulo')}"
+                for d in coincidencias_titulo[:5]
+            ])
+    
+            prompt = f"""
+    Notas relacionadas:
+    {contexto}
+    
+    Pregunta del usuario:
+    {question}
+    
+    Respondé de forma clara y explicativa.
+    """
+    
+            completion = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+            )
+    
+            answer = completion.choices[0].message.content
+    
+            links = []
+            for d in coincidencias_titulo[:5]:
+                if d.get("url"):
+                    links.append(
+                        f'• {d.get("titulo")} '
+                        f'<a href="{d.get("url")}" target="_blank">Ver nota</a>'
+                    )
+    
+            if links:
+                answer += "<br><br><b>🔗 Notas relacionadas:</b><br>" + "<br>".join(links)
+    
+            return jsonify({"answer": answer})
 
     # =====================================================
     # 🟢 RAG GENERAL (COMO ANTES)
