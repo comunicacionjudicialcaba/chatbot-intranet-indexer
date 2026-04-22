@@ -1680,6 +1680,18 @@
     "mes": 4
   },
   {
+    "url": "https://intranet.jusbaires.gob.ar/nueva-forma-de-cambiar-las-contrasenas-en-jusbaires",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "20/04/2026",
+    "titulo": "Nueva manera de cambiar las contraseñas en Jusbaires",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-04-20",
+    "anio": 2026,
+    "mes": 4
+  },
+  {
     "url": "https://intranet.jusbaires.gob.ar/dias-inhabiles-por-elecciones-en-el-cpacf",
     "texto": "",
     "tipo": "sheet",
@@ -1700,6 +1712,42 @@
     "autor": "Angie",
     "seccion": "Artículo",
     "fecha_iso": "2026-04-20",
+    "anio": 2026,
+    "mes": 4
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/el-juzcado-cayt-n-20-busca-oficial",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "El Juzcado CAyT N° 20 busca Oficial",
+    "autor": "Angie",
+    "seccion": "Búsqueda de personal",
+    "fecha_iso": "2026-04-21",
+    "anio": 2026,
+    "mes": 4
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/posibles-fluctuaciones-e-interrupciones-en-el-servicios-informaticos-22-4-2026",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "Posibles fluctuaciones e interrupciones en el servicios informáticos",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-04-21",
+    "anio": 2026,
+    "mes": 4
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/mas-de-20-areas-se-suman-al-programa-justicia-sustentable",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "Más de 20 áreas se suman al Programa Justicia Sustentable",
+    "autor": "Sofía",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-04-21",
     "anio": 2026,
     "mes": 4
   },
@@ -23362,16 +23410,7 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "",
-    "titulo": "",
-    "autor": "",
-    "seccion": "",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
-    "fecha": "",
+    "fecha": "20/04/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
@@ -23381,9 +23420,90 @@
   {
     "tipo": "sheet",
     "fecha": "20/04/2026",
-    "titulo": "Nueva manera de cambiar las contraseñas en Jusbaires",
-    "autor": "Diego",
-    "seccion": "Artículo",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "21/04/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
     "url": "",
     "texto": ""
   },
