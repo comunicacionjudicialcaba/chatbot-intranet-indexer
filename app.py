@@ -7,6 +7,8 @@ from openai import OpenAI
 from collections import defaultdict
 import unicodedata
 from bs4 import BeautifulSoup
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 
@@ -15,9 +17,20 @@ GOOGLE_FORM_URL = os.environ.get("GOOGLE_FORM_URL")
 # =========================================================
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-print("API KEY:", os.getenv("OPENAI_API_KEY"))
+
+# ✅ FIX #4: No imprimir la API key completa en logs
+_api_key = os.getenv("OPENAI_API_KEY")
+print("API KEY configurada:", "✅ OK" if _api_key else "❌ NO ENCONTRADA")
 
 app = Flask(__name__)
+
+# ✅ FIX #8: Rate limiting para proteger costos de OpenAI
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200/hour"],
+    storage_uri="memory://"
+)
 
 DATA_FILE = "data.json"
 
@@ -44,7 +57,9 @@ embeddings = np.load("embeddings.npy")
 with open("meta.json", "r", encoding="utf-8") as f:
     metadata = json.load(f)
 
+# ✅ FIX #1: Evitar división por cero cuando la norma es 0
 norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+norms = np.where(norms == 0, 1, norms)  # reemplazar 0 con 1 para evitar NaN/inf
 embeddings_norm = embeddings / norms
 
 print(f"✅ Embeddings cargados: {embeddings_norm.shape}")
@@ -160,16 +175,14 @@ def buscar_por_titulo_y_anio(keywords, anio=None):
         if anio and d.get("anio") != anio:
             continue
 
-        # 🔍 detectar keywords que realmente matchean
         matched = [
             k for k in keywords
             if coincide_palabra(k, titulo_norm)
         ]
 
-        # 🧠 regla correcta:
-        # - si hay 1 solo concepto → alcanza con 1 match
-        # - si hay varios → exigir al menos 2
-        min_matches = 1 if len(matched) <= 1 else 2
+        # ✅ FIX #2: usar len(keywords) para determinar el umbral,
+        # no len(matched) — así la regla "1 concepto → 1 match, varios → 2" es correcta
+        min_matches = 1 if len(keywords) <= 1 else 2
 
         if len(matched) >= min_matches:
             resultados.append(d)
@@ -268,7 +281,7 @@ Respondés exclusivamente con la información contenida en las notas provistas.
 - Si una nota refiere directamente al tema consultado por su TÍTULO,
   utilizá esa información y aclaralo explícitamente.
 - No descartes una nota relevante solo porque su texto esté vacío.
-- No respondas “no se menciona” si existe una nota cuyo título coincide
+- No respondas "no se menciona" si existe una nota cuyo título coincide
   claramente con la consulta.
 """
 
@@ -293,16 +306,15 @@ No reemplaces el buscador normativo oficial.
 """
 
 PROMPT_CFJ = """
-La consulta refiere EXCLUSIVAMENTE a la oferta vigente del
-Centro de Formación Judicial (CFJ).
+La consulta refiere EXCLUSIVAMENTE a la oferta vigente del Centro de Formación Judicial (CFJ).
 
 INSTRUCCIONES OBLIGATORIAS:
 - Respondé SOLO con la información listada en el contexto provisto.
 - NO menciones notas, documentos internos ni embeddings.
-- NO digas “no se dispone de información”.
+- NO digas "no se dispone de información".
 - NO inventes URLs ni secciones.
 - Si hay cursos o becas listados, ENUMERALOS.
-- Si no hubiera resultados, indicá: “La oferta visible en el sitio oficial puede variar”.
+- Si no hubiera resultados, indicá: "La oferta visible en el sitio oficial puede variar".
 
 El sitio oficial del CFJ utiliza:
 - https://cfj.gov.ar/capacitacion.php
@@ -317,19 +329,24 @@ CFJ_CAP_URL = "https://cfj.gov.ar/capacitacion.php"
 CFJ_BECAS_URL = "https://cfj.gov.ar/becas.php"
 
 def obtener_items_cfj(url):
-    r = requests.get(url, timeout=15)
+    # ✅ FIX #3: manejar errores de red para que el servidor no crashee
+    try:
+        r = requests.get(url, timeout=15)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"⚠️ Error al obtener CFJ ({url}): {e}")
+        return []
+
     soup = BeautifulSoup(r.text, "html.parser")
 
     items = []
 
-    # Buscar títulos comunes de actividades
     for tag in soup.find_all(["h2", "h3", "strong", "p"]):
         texto = tag.get_text(strip=True)
 
         if not texto:
             continue
 
-        # Filtro básico de relevancia
         if len(texto) < 20:
             continue
 
@@ -364,12 +381,16 @@ def responder_cfj(question):
     for b in becas:
         contexto.append(f"- {b['titulo']} ({b['url']})")
 
+    # Si ambas fuentes fallaron, avisar en lugar de enviar contexto vacío
+    if not contexto:
+        return jsonify({"answer": "No fue posible obtener la oferta del CFJ en este momento. "
+                                   f'Podés consultarla directamente en <a href="{CFJ_CAP_URL}" target="_blank">cfj.gov.ar</a>.'})
+
     prompt = f"""
 INFORMACIÓN OFICIAL CFJ:
 {chr(10).join(contexto)}
 
-PREGUNTA:
-{question}
+PREGUNTA: {question}
 """
 
     completion = client.chat.completions.create(
@@ -416,7 +437,6 @@ def build_context(docs):
     for d in docs:
         texto = (d.get("texto") or "").strip()
 
-        # 🔧 CAMBIO 2 – nota sin texto
         if not texto:
             texto = "⚠️ Nota sin desarrollo de contenido al momento."
 
@@ -436,7 +456,9 @@ def build_context(docs):
 def home():
     return render_template("index.html")
 
+
 @app.route("/chat", methods=["POST"])
+@limiter.limit("20/minute")  # ✅ FIX #8: rate limiting por IP
 def chat():
     data = request.get_json()
     question = (data.get("question") or "").strip()
@@ -445,14 +467,29 @@ def chat():
     if not question:
         return jsonify({"answer": "No recibí la pregunta."})
 
+    # ✅ FIX #7: validar longitud máxima para evitar prompts masivos
+    if len(question) > 500:
+        return jsonify({"answer": "La pregunta es demasiado larga. Por favor resumila en menos de 500 caracteres."}), 400
+
+    # ✅ FIX #5: definir terminos_clave aquí para que esté disponible
+    # en todos los bloques posteriores, incluyendo el re-ranking del RAG
+    STOPWORDS = {
+        "de","la","el","los","las","y","o","en","a","del",
+        "un","una","por","para","con","al"
+    }
+    terminos_clave = [
+        p for p in q_norm.split()
+        if p not in STOPWORDS and len(p) > 3
+    ]
+
     # =====================================================
-    # 🧭 DETECCIÓN DE INTENCIÓN (NO responde)
+    # 🧭 DETECCIÓN DE INTENCIÓN
     # =====================================================
-    es_plenario = "plenario" in q_norm
-    es_cfj = es_busqueda_cfj(q_norm)
+    es_plenario  = "plenario" in q_norm
+    es_cfj       = es_busqueda_cfj(q_norm)
     es_normativa = es_busqueda_normativa(q_norm)
-    es_servicio = es_busqueda_servicio(q_norm)
-    es_iso = es_busqueda_iso(q_norm)
+    es_servicio  = es_busqueda_servicio(q_norm)
+    es_iso       = es_busqueda_iso(q_norm)
 
     # =====================================================
     # 🟣 PLENARIOS (PRIORIDAD MÁXIMA)
@@ -461,7 +498,7 @@ def chat():
         plenarios = [d for d in DATA if tipo_plenario(d) != "otro"]
 
         anio = detectar_anio(q_norm)
-        mes = detectar_mes(q_norm)
+        mes  = detectar_mes(q_norm)
 
         if anio:
             plenarios = [p for p in plenarios if p.get("anio") == anio]
@@ -495,14 +532,13 @@ def chat():
         prompt_extra = PROMPT_SERVICIO
     elif es_normativa:
         prompt_extra = PROMPT_NORMATIVA
-        
-    # =====================================================
-    # 🟦 LISTADO DIRECTO POR TITULO (NUEVA CAPA)
-    # =====================================================
 
+    # =====================================================
+    # 🟦 LISTADO DIRECTO POR TITULO
+    # =====================================================
     anio_detectado = detectar_anio(q_norm)
 
-    keywords_base = extraer_keywords_estructuradas(q_norm)
+    keywords_base         = extraer_keywords_estructuradas(q_norm)
     keywords_estructuradas = expandir_keywords(keywords_base)
 
     resultados_estructurados = buscar_por_titulo_y_anio(
@@ -511,7 +547,6 @@ def chat():
     )
 
     if resultados_estructurados:
-
         contexto = "\n".join([
             f"{d.get('fecha')} — {d.get('titulo')}"
             for d in resultados_estructurados[:10]
@@ -521,8 +556,7 @@ def chat():
 Notas encontradas:
 {contexto}
 
-Pregunta del usuario:
-{question}
+Pregunta del usuario: {question}
 
 Respondé de forma clara, institucional y explicativa.
 """
@@ -540,19 +574,10 @@ Respondé de forma clara, institucional y explicativa.
 
         return jsonify({"answer": answer})
 
-
     # =====================================================
-    # 🟠 FALLBACK LÉXICO POR TÍTULO (ÚLTIMO RECURSO)
+    # 🟠 FALLBACK LÉXICO POR TÍTULO
     # =====================================================
-    STOPWORDS = {
-        "de","la","el","los","las","y","o","en","a","del",
-        "un","una","por","para","con","al"
-    }
-
-    terminos_clave = [
-        p for p in q_norm.split()
-        if p not in STOPWORDS and len(p) > 3
-    ]
+    # terminos_clave ya está definido arriba (FIX #5)
 
     coincidencias_titulo = []
     for d in DATA:
@@ -567,7 +592,6 @@ Respondé de forma clara, institucional y explicativa.
             coincidencias_titulo.append(d)
 
     if coincidencias_titulo:
-
         contexto = "\n".join([
             f"{d.get('titulo')}"
             for d in coincidencias_titulo[:5]
@@ -577,8 +601,7 @@ Respondé de forma clara, institucional y explicativa.
 Notas relacionadas:
 {contexto}
 
-Pregunta del usuario:
-{question}
+Pregunta del usuario: {question}
 
 Respondé de forma clara y explicativa.
 """
@@ -596,10 +619,8 @@ Respondé de forma clara y explicativa.
 
         return jsonify({"answer": answer})
 
-
-
     # =====================================================
-    # 🟢 RAG GENERAL (COMO ANTES)
+    # 🟢 RAG GENERAL
     # =====================================================
     q_emb = client.embeddings.create(
         model="text-embedding-3-small",
@@ -609,6 +630,7 @@ Respondé de forma clara y explicativa.
     chunks = semantic_search(np.array(q_emb), top_k=80)
 
     # Re-rank por título si no hay texto
+    # terminos_clave ya está definido arriba (FIX #5)
     for c in chunks:
         c["_boost"] = 0
         if not c.get("texto"):
@@ -629,8 +651,7 @@ Respondé de forma clara y explicativa.
 TEXTOS:
 {context}
 
-PREGUNTA:
-{question}
+PREGUNTA: {question}
 """
 
     completion = client.chat.completions.create(
@@ -665,7 +686,6 @@ PREGUNTA:
 
 @app.route("/data")
 def data():
-    # el frontend espera JSON con las notas
     return jsonify(DATA)
 
 
