@@ -2112,18 +2112,6 @@
     "mes": 5
   },
   {
-    "url": "https://intranet.jusbaires.gob.ar/nuevas-funcionalidades-en-el-sistema-de-busqueda-del-centro-de-documentacion-del-consejo",
-    "texto": "",
-    "tipo": "sheet",
-    "fecha": "7/05/2026",
-    "titulo": "Nuevas funcionalidades en el sistema de búsqueda del Centro de Documentación del Consejo",
-    "autor": "Angie",
-    "seccion": "Artículo",
-    "fecha_iso": "2026-05-07",
-    "anio": 2026,
-    "mes": 5
-  },
-  {
     "url": "https://intranet.jusbaires.gob.ar/fluctuaciones-en-servicio-wifi-en-edificios-yrigoyen-900-y-bolivar-191",
     "texto": "",
     "tipo": "sheet",
@@ -2288,6 +2276,78 @@
     "autor": "Angie",
     "seccion": "Artículo",
     "fecha_iso": "2026-05-15",
+    "anio": 2026,
+    "mes": 5
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/una-campana-para-aprender-a-detectar-correos-maliciosos",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "Una campaña para aprender a detectar correos maliciosos",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-05-18",
+    "anio": 2026,
+    "mes": 5
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/el-gobierno-abierto-se-suma-a-la-charla-de-frecuencia-judicial",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "El Gobierno Abierto se suma a la charla de Frecuencia Judicial",
+    "autor": "Sofía",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-05-18",
+    "anio": 2026,
+    "mes": 5
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/eventos/1551",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "Alimentación saludable y hábitos nutricionales",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-05-18",
+    "anio": 2026,
+    "mes": 5
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/nuevas-funcionalidades-en-el-sistema-de-busqueda-del-centro-de-documentacion-del-consejo",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "Nuevas funcionalidades en el sistema de búsqueda del Centro de Documentación del Consejo",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-05-18",
+    "anio": 2026,
+    "mes": 5
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/eventos/1552",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "Problemáticas del consumidor inmobiliario",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-05-18",
+    "anio": 2026,
+    "mes": 5
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/eventos/1553",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "Introducción práctica a las ejecuciones fiscales y procesos ordinarios del fuero CATyRC",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-05-18",
     "anio": 2026,
     "mes": 5
   },
@@ -25058,6 +25118,69 @@
   {
     "tipo": "sheet",
     "fecha": "15/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "18/05/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
