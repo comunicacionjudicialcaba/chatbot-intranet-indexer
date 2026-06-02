@@ -2657,7 +2657,31 @@
     "tipo": "sheet",
     "fecha": "1/06/2026",
     "titulo": "La Justicia de la Ciudad habló de Lenguaje Claro ante la RAE",
+    "autor": "Sofía",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-06-01",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/campana-por-el-dia-mundial-sin-tabaco",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "1/06/2026",
+    "titulo": "Campaña por el Día Mundial Sin Tabaco",
     "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-06-01",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/taller-operativo-sifcop-fortalecimiento-del-sistema-a-dos-anos-de-su-implementacion",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "1/06/2026",
+    "titulo": "Taller operativo SIFCOP: fortalecimiento del sistema a dos años de su implementación",
+    "autor": "Diego",
     "seccion": "Artículo",
     "fecha_iso": "2026-06-01",
     "anio": 2026,
@@ -25907,6 +25931,24 @@
   {
     "tipo": "sheet",
     "fecha": "29/05/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "01/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "01/06/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
