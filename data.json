@@ -2967,11 +2967,11 @@
     "url": "https://intranet.jusbaires.gob.ar/justibot-inteligente-un-ano-acercando-la-justicia-a-las-personas-de-forma-clara-y-accesible",
     "texto": "",
     "tipo": "sheet",
-    "fecha": "18/06/2026",
-    "titulo": "JustiBot Inteligente: un año acercando la justicia a las personas de forma clara y accesible",
+    "fecha": "22/06/2026",
+    "titulo": "JustiBot Inteligente: un año acercando la justicia a las personas, ahora con lenguaje natural y una voz propia",
     "autor": "Diego",
     "seccion": "Artículo",
-    "fecha_iso": "2026-06-18",
+    "fecha_iso": "2026-06-22",
     "anio": 2026,
     "mes": 6
   },
@@ -3008,6 +3008,54 @@
     "autor": "Angie",
     "seccion": "Artículo",
     "fecha_iso": "2026-06-18",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/se-abre-la-inscripcion-a-las-becas-fulbright-para-estudios-de-posgrado",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "Se abre la inscripción a las becas Fulbright para estudios de posgrado",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-06-22",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/nueva-sede-de-la-direccion-de-diligenciamientos-cmcaba",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "Nueva sede de la Dirección de Diligenciamientos CMCABA",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-06-22",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/guardias-medicas-y-psicologicas-de-la-cuarta-semana-de-junio",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "Guardias médicas y psicológicas de la cuarta semana de junio",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-06-22",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/eventos/1569",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "Curso de Primeros Auxilios y Reanimación Cardiopulmonar (RCP)",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-06-22",
     "anio": 2026,
     "mes": 6
   },
@@ -22591,15 +22639,6 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "4/05/2026",
-    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
-    "autor": "Angie",
-    "seccion": "Artículo",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
     "fecha": "05/01/2026",
     "titulo": "",
     "autor": "",
@@ -26600,6 +26639,150 @@
     "titulo": "",
     "autor": "",
     "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "19/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "22/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "4/05/2026",
+    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
+    "autor": "Angie",
+    "seccion": "Artículo",
     "url": "",
     "texto": ""
   },
