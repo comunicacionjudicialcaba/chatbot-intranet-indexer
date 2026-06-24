@@ -2682,7 +2682,7 @@
     "fecha": "1/06/2026",
     "titulo": "Taller operativo SIFCOP: fortalecimiento del sistema a dos años de su implementación",
     "autor": "Diego",
-    "seccion": "Artículo",
+    "seccion": "Capacitaciones",
     "fecha_iso": "2026-06-01",
     "anio": 2026,
     "mes": 6
@@ -3056,6 +3056,42 @@
     "autor": "Angie",
     "seccion": "Capacitaciones",
     "fecha_iso": "2026-06-22",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/notificacion/posibles-fluctuaciones-y-o-ralentizacion-en-los-accesos-a-webs-del-organismo/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "23/06/2026",
+    "titulo": "\n\nPosibles fluctuaciones y/o ralentización en los accesos a webs del organismo",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-06-23",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/comunicacion-asertiva/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "23/06/2026",
+    "titulo": "Comunicación asertiva",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-06-23",
+    "anio": 2026,
+    "mes": 6
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=sdFu3fZP4kA&list=PL1w-Nzp41xW9T50ra9bsNCC74WYoys3Jv&index=4",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "23/06/2026",
+    "titulo": "\nFrecuencia Judicial - Episodio 16 - Una Justicia con perspectiva ambiental y de derecho animal",
+    "autor": "Otros",
+    "seccion": "Videos",
+    "fecha_iso": "2026-06-23",
     "anio": 2026,
     "mes": 6
   },
@@ -22639,6 +22675,15 @@
   },
   {
     "tipo": "sheet",
+    "fecha": "4/05/2026",
+    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
     "fecha": "05/01/2026",
     "titulo": "",
     "autor": "",
@@ -26770,7 +26815,7 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "22/06/2026",
+    "fecha": "23/06/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
@@ -26779,10 +26824,37 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "4/05/2026",
-    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
-    "autor": "Angie",
-    "seccion": "Artículo",
+    "fecha": "23/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "23/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "23/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "23/06/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
     "url": "",
     "texto": ""
   },
