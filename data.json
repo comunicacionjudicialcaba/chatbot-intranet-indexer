@@ -3948,6 +3948,54 @@
     "mes": 8
   },
   {
+    "url": "https://intranet.jusbaires.gob.ar/introduccion-al-chatgpt-aplicaciones-practicas-en-el-ambito-laboral-4/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "3/08/2026",
+    "titulo": "Introducción al ChatGPT: aplicaciones prácticas en el ámbito laboral",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-08-03",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/herramientas-comunicacionales-para-potenciar-a-las-personas-con-funciones-de-coordinacion-y-liderazgo-en-los-equipos-del-poder-judicial/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "3/08/2026",
+    "titulo": "Herramientas comunicacionales para potenciar a las personas con funciones de coordinación y liderazgo en los equipos del Poder Judicial",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-08-03",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/gemini-notebook-aplicado-al-ambito-judicial-gestion-inteligente-de-informacion-y-analisis-con-ia/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "3/08/2026",
+    "titulo": "Gemini Notebook aplicado al ámbito judicial: gestión inteligente de información y análisis con IA",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-08-03",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/la-seleccion-del-jurado-en-la-practica-desarrollo-de-una-audiencia-de-voir-dire/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "4/08/2026",
+    "titulo": "La selección del jurado en la práctica: desarrollo de una audiencia de voir dire",
+    "autor": "Diego",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-08-04",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
     "url": "https://intranet.jusbaires.gob.ar/la-direccion-de-medicina-forense-busca-personal-para-mesa-de-entrada",
     "texto": "La Dirección General de Factor Humano informó la búsqueda interna de personal iniciada por la Dirección de Medicina Forense. Esta convocatoria esta dirigida exclusivamente al personal de planta permanente del área no jurisdiccional del Consejo de la Magistratura\nEl puesto y las tareas a cubrir para el Dpto. Administrativo de la Dirección de Medicina Forense son las siguientes:\nMesa de entrada: horario de 8 a 15hs, recepción y registro de peritados / peritos de parte, atención telefónica, confección de actas, atención al publico.\nRequisitos: manejo de Sistema EJE, conocimientos de Excel, Word, Cisco Webex, lectura de expedientes.\nLos interesados podrán enviar su CV a las casillas de correo electrónico jpineiro@jusbaires.gob.ar y mcaetano@jusbaires.gob.ar.\n",
     "fecha": "4/04/2024",
@@ -23527,6 +23575,24 @@
   },
   {
     "tipo": "sheet",
+    "fecha": "4/05/2026",
+    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "4/08/2026",
+    "titulo": "Segunda edición de la capacitación sobre \"Equipos de trabajo\" y la función de coordinación",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
     "fecha": "05/01/2026",
     "titulo": "",
     "autor": "",
@@ -28738,10 +28804,28 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "4/05/2026",
-    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
-    "autor": "Angie",
-    "seccion": "Artículo",
+    "fecha": "04/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "04/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "04/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
     "url": "",
     "texto": ""
   },
