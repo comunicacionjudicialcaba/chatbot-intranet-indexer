@@ -4132,10 +4132,46 @@
     "texto": "",
     "tipo": "sheet",
     "fecha": "11/08/2026",
-    "titulo": "",
+    "titulo": "Gestión del tiempo",
     "autor": "Angie",
     "seccion": "Capacitaciones",
     "fecha_iso": "2026-08-11",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/prestamos-personales-a-tasa-fija-del-50-por-ciento/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
+    "titulo": "Préstamos personales a tasa fija del 50 por ciento",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-08-12",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/primera-investigacion-sobre-falsas-denuncias-en-uruguay-comentarios-desde-la-justicia-de-la-caba/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
+    "titulo": "Primera investigación sobre falsas denuncias en Uruguay: comentarios desde la justicia de la CABA",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-08-12",
+    "anio": 2026,
+    "mes": 8
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/notificacion/corte-programado-en-servicio-eje-y-portal-del-litigante-copy-copy-copy/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
+    "titulo": "Corte programado en servicio EJE y Portal del Litigante",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-08-12",
     "anio": 2026,
     "mes": 8
   },
@@ -29210,6 +29246,60 @@
   {
     "tipo": "sheet",
     "fecha": "11/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "11/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "11/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "12/08/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
