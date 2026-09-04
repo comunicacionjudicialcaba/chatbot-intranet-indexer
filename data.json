@@ -4611,11 +4611,11 @@
     "url": "https://intranet.jusbaires.gob.ar/capacitacion-virtual-y-recoleccion-de-pilas-y-residuos-electronicos/",
     "texto": "",
     "tipo": "sheet",
-    "fecha": "1/09/2026",
+    "fecha": "2/09/2026",
     "titulo": "Capacitación virtual y recolección de pilas y residuos electrónicos",
     "autor": "Angie",
     "seccion": "Artículo",
-    "fecha_iso": "2026-09-01",
+    "fecha_iso": "2026-09-02",
     "anio": 2026,
     "mes": 9
   },
@@ -4623,11 +4623,47 @@
     "url": "https://www.youtube.com/watch?v=jUDtgDGum6U",
     "texto": "",
     "tipo": "sheet",
-    "fecha": "1/09/2026",
+    "fecha": "2/09/2026",
     "titulo": "Frecuencia Judicial - Episodio 20 - Travesticidios: cuando la identidad se vuelve un riesgo",
     "autor": "Otros",
     "seccion": "Videos",
-    "fecha_iso": "2026-09-01",
+    "fecha_iso": "2026-09-02",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/lopez-zavaleta-sera-el-fiscal-general-porteno-por-los-proximos-siete-anos/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "3/09/2026",
+    "titulo": "López Zavaleta será el Fiscal General porteño por los próximos siete años",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-09-03",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/la-justicia-de-la-ciudad-se-sumo-al-debate-en-el-senado-por-la-transferencia-de-competencias-penales/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "3/09/2026",
+    "titulo": "La Justicia de la Ciudad se sumó al debate en el Senado por la transferencia de competencias penales",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-09-03",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/busqueda-interna/se-abre-el-registro-de-aspirantes-al-fuero-del-trabajo/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "3/09/2026",
+    "titulo": "Se abre el registro de Aspirantes al Fuero del Trabajo",
+    "autor": "Angie",
+    "seccion": "Búsqueda de personal",
+    "fecha_iso": "2026-09-03",
     "anio": 2026,
     "mes": 9
   },
@@ -30340,6 +30376,69 @@
   },
   {
     "tipo": "sheet",
+    "fecha": "02/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "02/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "03/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "03/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "03/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "03/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "03/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
     "fecha": "22/01/2026",
     "titulo": "",
     "autor": "",
@@ -31114,7 +31213,7 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "",
+    "fecha": "3/09/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
