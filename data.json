@@ -5043,11 +5043,11 @@
     "url": "https://intranet.jusbaires.gob.ar/notificacion/fluctuaciones-en-el-sitio-glpi/",
     "texto": "",
     "tipo": "sheet",
-    "fecha": "24/09/2026",
+    "fecha": "28/09/2026",
     "titulo": "Fluctuaciones en el sitio GLPI",
     "autor": "Angie",
     "seccion": "Artículo",
-    "fecha_iso": "2026-09-24",
+    "fecha_iso": "2026-09-28",
     "anio": 2026,
     "mes": 9
   },
@@ -5084,6 +5084,66 @@
     "autor": "Angie",
     "seccion": "Capacitaciones",
     "fecha_iso": "2026-09-24",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/posgrado-en-liderazgo-comunicacion-estrategica-y-gestion-judicial/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "24/09/2026",
+    "titulo": "Posgrado en Liderazgo, Comunicación Estratégica y Gestión Judicial",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-09-24",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/salud-y-bienestar-en-el-trabajo-burn-out-boreout-y-workaholic/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "Salud y Bienestar en el trabajo: Burn Out, boreout, y workaholic",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-09-28",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/notificacion/guardias-mdicas-y-psicolgicas-de-finales-de-septiembre-y-primera-semana-de-octubre/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "Guardias médicas y psicológicas de finales de septiembre y primeros días de octubre",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-09-28",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/comienzan-las-auditorias-internas-de-los-sistemas-de-gestion-de-calidad-del-poder-judicial/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "Comienzan las auditorías internas de los Sistemas de Gestión de Calidad del Poder Judicial",
+    "autor": "Diego",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-09-28",
+    "anio": 2026,
+    "mes": 9
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/dia-mundial-del-corazon-cuidados-para-la-salud-cardiovascular/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "Día Mundial del Corazón: Cuidados para la salud cardiovascular",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-09-28",
     "anio": 2026,
     "mes": 9
   },
@@ -31598,6 +31658,42 @@
   {
     "tipo": "sheet",
     "fecha": "25/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "28/09/2026",
     "titulo": "",
     "autor": "",
     "seccion": "",
