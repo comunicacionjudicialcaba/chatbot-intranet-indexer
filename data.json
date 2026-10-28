@@ -5688,6 +5688,42 @@
     "mes": 10
   },
   {
+    "url": "https://intranet.jusbaires.gob.ar/sumate-a-la-20-campana-nacional-de-recaudacion-de-medicamentos/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "Sumate a la 20° campaña nacional de recaudación de medicamentos",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "fecha_iso": "2026-10-27",
+    "anio": 2026,
+    "mes": 10
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/jornada-de-justicia-y-genero-una-mirada-desde-los-derechos-humanos/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "Jornada de Justicia y Género: “Una mirada desde los Derechos Humanos”",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-10-27",
+    "anio": 2026,
+    "mes": 10
+  },
+  {
+    "url": "https://intranet.jusbaires.gob.ar/introduccion-a-la-evaluacion-de-capacidades-e-internaciones-en-salud-mental/",
+    "texto": "",
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "Introducción a la evaluación de capacidades e internaciones en salud mental",
+    "autor": "Angie",
+    "seccion": "Capacitaciones",
+    "fecha_iso": "2026-10-27",
+    "anio": 2026,
+    "mes": 10
+  },
+  {
     "url": "https://intranet.jusbaires.gob.ar/la-direccion-de-medicina-forense-busca-personal-para-mesa-de-entrada",
     "texto": "La Dirección General de Factor Humano informó la búsqueda interna de personal iniciada por la Dirección de Medicina Forense. Esta convocatoria esta dirigida exclusivamente al personal de planta permanente del área no jurisdiccional del Consejo de la Magistratura\nEl puesto y las tareas a cubrir para el Dpto. Administrativo de la Dirección de Medicina Forense son las siguientes:\nMesa de entrada: horario de 8 a 15hs, recepción y registro de peritados / peritos de parte, atención telefónica, confección de actas, atención al publico.\nRequisitos: manejo de Sistema EJE, conocimientos de Excel, Word, Cisco Webex, lectura de expedientes.\nLos interesados podrán enviar su CV a las casillas de correo electrónico jpineiro@jusbaires.gob.ar y mcaetano@jusbaires.gob.ar.\n",
     "fecha": "4/04/2024",
@@ -25267,15 +25303,6 @@
   },
   {
     "tipo": "sheet",
-    "fecha": "4/05/2026",
-    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
-    "autor": "Angie",
-    "seccion": "Artículo",
-    "url": "",
-    "texto": ""
-  },
-  {
-    "tipo": "sheet",
     "fecha": "05/01/2026",
     "titulo": "",
     "autor": "",
@@ -33119,6 +33146,96 @@
     "titulo": "",
     "autor": "",
     "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "",
+    "autor": "",
+    "seccion": "",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "4/05/2026",
+    "titulo": "Cómo solicitar reparaciones o servicios generales mediante el sistema de autogestión",
+    "autor": "Angie",
+    "seccion": "Artículo",
+    "url": "",
+    "texto": ""
+  },
+  {
+    "tipo": "sheet",
+    "fecha": "27/10/2026",
+    "titulo": "Alsina 833: el edificio que alojará la primera etapa del nuevo Fuero del Trabajo",
+    "autor": "Diego",
+    "seccion": "Artículo",
     "url": "",
     "texto": ""
   },
